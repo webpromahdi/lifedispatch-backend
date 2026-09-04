@@ -1,0 +1,29 @@
+model Dispatch {
+  id           String @id @default(uuid()) @db.Uuid
+  emergencyId  String @db.Uuid
+  ambulanceId  String @db.Uuid
+  driverId     String @db.Uuid
+  dispatchedBy String @db.Uuid
+
+  status          DispatchStatus @default(PENDING_ACCEPTANCE)
+  dispatchScore   Decimal?       @db.Decimal(8, 4)
+  rejectionReason String?        @db.Text
+
+  acceptedAt DateTime?
+  rejectedAt DateTime?
+  timeoutAt  DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  emergency  EmergencyRequest @relation(fields: [emergencyId], references: [id])
+  ambulance  Ambulance        @relation(fields: [ambulanceId], references: [id])
+  driver     Driver           @relation(fields: [driverId], references: [id])
+  dispatcher User             @relation("DispatchedBy", fields: [dispatchedBy], references: [id])
+  trip       Trip?
+
+  @@index([emergencyId])
+  @@index([ambulanceId])
+  @@index([status])
+  @@map("dispatches")
+}

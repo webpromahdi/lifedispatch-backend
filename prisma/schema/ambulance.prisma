@@ -1,0 +1,28 @@
+model Ambulance {
+  id                 String                @id @default(uuid()) @db.Uuid
+  registrationNumber String                @unique @db.VarChar(50)
+  type               AmbulanceType
+  status             AmbulanceStatus       @default(AVAILABLE)
+  capabilities       AmbulanceCapability[]
+
+  baseLocationLat Decimal  @db.Decimal(10, 7)
+  baseLocationLng Decimal  @db.Decimal(10, 7)
+  currentLat      Decimal? @db.Decimal(10, 7)
+  currentLng      Decimal? @db.Decimal(10, 7)
+
+  version Int @default(0)
+
+  lastServiceDate  DateTime? @db.Date
+  nextServiceDue   DateTime? @db.Date
+  manufacturedYear Int?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  driver     Driver?
+  dispatches Dispatch[]
+  trips      Trip[]
+
+  @@map("ambulances")
+}

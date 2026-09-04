@@ -1,0 +1,47 @@
+model EmergencyRequest {
+  id             String @id @default(uuid()) @db.Uuid
+  incidentNumber String @unique @db.VarChar(30)
+
+  patientId   String @db.Uuid
+  callerPhone String @db.VarChar(20)
+  callerName  String @db.VarChar(255)
+  description String @db.Text
+
+  emergencyType      EmergencyType
+  requiredCapability RequiredCapability
+  priority           EmergencyPriority?
+  prioritySetBy      String?            @db.Uuid
+
+  status EmergencyStatus @default(PENDING)
+
+  locationAddress String  @db.Text
+  locationLat     Decimal @db.Decimal(10, 7)
+  locationLng     Decimal @db.Decimal(10, 7)
+
+  dispatcherNotes  String? @db.Text
+  isEscalated      Boolean @default(false)
+  escalationReason String? @db.Text
+
+  slaTargetMinutes    Int?
+  responseTimeMinutes Decimal? @db.Decimal(8, 2)
+
+  cancelledAt        DateTime?
+  cancellationReason String?   @db.Text
+  cancelledBy        String?   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient            User               @relation("PatientEmergencies", fields: [patientId], references: [id])
+  priorityDispatcher User?              @relation("PrioritizedBy", fields: [prioritySetBy], references: [id])
+  cancelledByUser    User?              @relation("CancelledBy", fields: [cancelledBy], references: [id])
+  dispatches         Dispatch[]
+  trips              Trip[]
+  timeline           IncidentTimeline[]
+
+  @@index([status])
+  @@index([patientId])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("emergency_requests")
+}

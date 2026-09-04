@@ -1,0 +1,21 @@
+model IncidentTimeline {
+  id          String            @id @default(uuid()) @db.Uuid
+  emergencyId String            @db.Uuid
+  eventType   TimelineEventType
+
+  oldValue String? @db.Text
+  newValue String? @db.Text
+
+  triggeredBy     String? @db.Uuid
+  triggeredByRole String? @db.VarChar(50)
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  emergency EmergencyRequest @relation(fields: [emergencyId], references: [id])
+
+  @@index([emergencyId])
+  @@index([createdAt])
+  @@map("incident_timeline")
+}

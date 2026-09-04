@@ -1,0 +1,35 @@
+model Trip {
+  id          String  @id @default(uuid()) @db.Uuid
+  dispatchId  String  @unique @db.Uuid
+  emergencyId String  @db.Uuid
+  ambulanceId String  @db.Uuid
+  driverId    String  @db.Uuid
+  patientId   String  @db.Uuid
+  hospitalId  String? @db.Uuid
+
+  departedAt           DateTime?
+  arrivedAtSceneAt     DateTime?
+  patientPickedUpAt    DateTime?
+  hospitalSelectedAt   DateTime?
+  departedToHospitalAt DateTime?
+  arrivedAtHospitalAt  DateTime?
+  completedAt          DateTime?
+
+  distanceKm Decimal? @db.Decimal(8, 2)
+
+  status TripStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+
+  dispatch  Dispatch         @relation(fields: [dispatchId], references: [id])
+  emergency EmergencyRequest @relation(fields: [emergencyId], references: [id])
+  ambulance Ambulance        @relation(fields: [ambulanceId], references: [id])
+  driver    Driver           @relation(fields: [driverId], references: [id])
+  patient   User             @relation("PatientTrips", fields: [patientId], references: [id])
+  hospital  Hospital?        @relation(fields: [hospitalId], references: [id])
+  payment   Payment?
+
+  @@index([emergencyId])
+  @@index([status])
+  @@map("trips")
+}

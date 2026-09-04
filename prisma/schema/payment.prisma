@@ -1,0 +1,35 @@
+model Payment {
+  id            String @id @default(uuid()) @db.Uuid
+  tripId        String @unique @db.Uuid
+  patientId     String @db.Uuid
+  invoiceNumber String @unique @db.VarChar(30)
+
+  baseFare          Decimal @db.Decimal(10, 2)
+  distanceCharge    Decimal @db.Decimal(10, 2)
+  waitingCharge     Decimal @default(0) @db.Decimal(10, 2)
+  additionalCharges Decimal @default(0) @db.Decimal(10, 2)
+  discount          Decimal @default(0) @db.Decimal(10, 2)
+  totalAmount       Decimal @db.Decimal(10, 2)
+
+  currency String @default("USD") @db.VarChar(5)
+
+  paymentStatus      PaymentStatus @default(PENDING)
+  paymentMethod      String?       @db.VarChar(50)
+  paymentGatewayRef  String?       @db.VarChar(255)
+  paymentInitiatedAt DateTime?
+  paymentConfirmedAt DateTime?
+
+  refundAmount Decimal?  @db.Decimal(10, 2)
+  refundReason String?   @db.Text
+  refundedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip    Trip @relation(fields: [tripId], references: [id])
+  patient User @relation(fields: [patientId], references: [id])
+
+  @@index([patientId])
+  @@index([paymentStatus])
+  @@map("payments")
+}
