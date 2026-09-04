@@ -5,6 +5,10 @@ import { registerSchema } from "./auth.validation.js";
 
 const router = Router();
 
-router.post("/register", validateRequest(registerSchema), authController.register);
+router.post(
+	"/register",
+	validateRequest(registerSchema),
+	authController.register,
+);
 
 export const authRoutes = router;

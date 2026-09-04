@@ -5,19 +5,19 @@ import { sendResponse } from "../../utils/sendResponse.js";
 import { authService } from "./auth.service.js";
 
 const register = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const payload = req.body;
-    const user = await authService.registerUserIntoDB(payload);
+	async (req: Request, res: Response, next: NextFunction) => {
+		const payload = req.body;
+		const user = await authService.registerUserIntoDB(payload);
 
-    sendResponse(res, {
-      success: true,
-      statusCode: httpStatus.CREATED,
-      message: "User registered successfully",
-      data: { user },
-    });
-  },
+		sendResponse(res, {
+			success: true,
+			statusCode: httpStatus.CREATED,
+			message: "User registered successfully",
+			data: { user },
+		});
+	},
 );
 
 export const authController = {
-  register,
+	register,
 };

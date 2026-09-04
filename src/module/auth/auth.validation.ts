@@ -15,22 +15,21 @@ export const registerSchema = z.object({
 		.regex(/[a-z]/, "Password must contain at least 1 lowercase letter.")
 		.regex(/[A-Z]/, "Password must contain at least 1 uppercase letter.")
 		.regex(/[0-9]/, "Password must contain at least 1 number.")
-		.regex(/[^A-Za-z0-9]/, "Password must contain at least 1 special character."),
+		.regex(
+			/[^A-Za-z0-9]/,
+			"Password must contain at least 1 special character.",
+		),
 
 	role: z.nativeEnum(UserRole, {
-		error: "Invalid role. Allowed: PATIENT, DRIVER, HOSPITAL_STAFF, DISPATCHER, ADMIN",
+		error:
+			"Invalid role. Allowed: PATIENT, DRIVER, HOSPITAL_STAFF, DISPATCHER, ADMIN",
 	}),
 
-	phone: z
-		.string()
-		.max(20, "Phone number is too long!")
-		.optional(),
+	phone: z.string().max(20, "Phone number is too long!").optional(),
 });
 
 export const loginSchema = z.object({
 	email: z.email("Invalid email address!"),
 
-	password: z
-		.string()
-		.min(1, "Password is required."),
+	password: z.string().min(1, "Password is required."),
 });

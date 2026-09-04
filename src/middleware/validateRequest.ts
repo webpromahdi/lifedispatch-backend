@@ -10,13 +10,13 @@ export const validateRequest = (zodSchema: z.ZodObject<any>) => {
 		const result = zodSchema.safeParse(payload);
 
 		if (!result.success) {
-      const { error } = result;
-      console.log(error);
-      console.log(error.issues);
-      
-      const errorMessage = error.issues[0]?.message || "Validation error";
-      throw new AppError(httpStatus.BAD_REQUEST, errorMessage);
-    }
+			const { error } = result;
+			console.log(error);
+			console.log(error.issues);
+
+			const errorMessage = error.issues[0]?.message || "Validation error";
+			throw new AppError(httpStatus.BAD_REQUEST, errorMessage);
+		}
 
 		req.body = result.data;
 

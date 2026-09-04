@@ -1,4 +1,4 @@
-import { Application, Request, Response } from "express";
+import type { Application, Request, Response } from "express";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -10,10 +10,10 @@ import { notFound } from "./middleware/notFound.js";
 const app: Application = express();
 
 app.use(
-  cors({
-    origin: config.app_url,
-    credentials: true,
-  }),
+	cors({
+		origin: config.app_url,
+		credentials: true,
+	}),
 );
 
 app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
@@ -22,15 +22,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.get("/", (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: "Welcome to LifeDispatch API",
-  });
-});
-
 // Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/v1/auth", authRoutes);
+
+app.get("/", (req: Request, res: Response) => {
+	res.status(200).json({
+		success: true,
+		message: "Welcome to LifeDispatch API",
+	});
+});
 
 // Error handlers
 app.use(notFound);
