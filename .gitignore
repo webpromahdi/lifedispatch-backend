@@ -1,0 +1,17 @@
+node_modules
+# Keep environment variables out of version control
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Project documentation
+blueprint.md
+FEATURES_AND_APIS.md
+
+# Logs
+*.log
+logs/
+
+/generated/prisma
