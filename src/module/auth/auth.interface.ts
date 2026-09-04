@@ -1,4 +1,4 @@
-import type { UserRole } from "../../../generated/prisma/enums.js";
+import type { UserRole, UserStatus } from "../../../generated/prisma/enums.js";
 
 export type TRegisterPayload = {
 	name: string;
@@ -8,7 +8,10 @@ export type TRegisterPayload = {
 	phone?: string;
 };
 
-export type TLoginPayload = {
-	email: string;
-	password: string;
+export type TLoginUser = {
+	id: string;
+	name: string;
+	email: string | null;
+	role: UserRole;
+	status: UserStatus;
 };

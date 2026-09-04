@@ -14,4 +14,7 @@ export default {
 	jwt_refresh_secret: process.env.JWT_REFRESH_SECRET!,
 	jwt_access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN!,
 	jwt_refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN!,
+	GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
+	GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
+	GOOGLE_CLIENT_CALLBACK_URL: process.env.GOOGLE_CLIENT_CALLBACK_URL!,
 };

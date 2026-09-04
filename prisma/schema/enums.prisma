@@ -6,6 +6,11 @@ enum UserRole {
   ADMIN
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 enum BloodType {
   A_POSITIVE
   A_NEGATIVE
