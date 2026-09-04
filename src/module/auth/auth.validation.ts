@@ -28,6 +28,11 @@ export const registerSchema = z.object({
 	phone: z.string().max(20, "Phone number is too long!").optional(),
 });
 
+export const PatientEmailVerifyZodSchema = z.object({
+	email: z.email("Not email!!"),
+	otp: z.string().length(6),
+});
+
 export const loginSchema = z.object({
 	email: z.email("Invalid email address!"),
 

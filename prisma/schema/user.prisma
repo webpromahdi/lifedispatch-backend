@@ -10,7 +10,8 @@ model User {
   authProvider  AuthProvider @default(CREDENTIAL)
 
   status        UserStatus   @default(ACTIVE)
-  isVerified Boolean @default(false)
+  isVerified    Boolean @default(false)
+  isDeleted     Boolean @default(false)
 
   emergencyContactName  String?    @db.VarChar(255)
   emergencyContactPhone String?    @db.VarChar(20)

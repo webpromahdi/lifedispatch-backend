@@ -15,11 +15,44 @@ const register = catchAsync(
 		sendResponse(res, {
 			success: true,
 			statusCode: httpStatus.CREATED,
-			message: "User registered successfully",
+			message:
+				"Registration OTP sent to your email successfully. Valid for 5 minutes.",
 			data: { user },
 		});
 	},
 );
+
+const verifyPatientEmail = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+
+	const result = await authService.verifyPatientEmail(payload);
+
+	const { accessToken, refreshToken, user } = result;
+
+	res.cookie("accessToken", accessToken, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === "production",
+		sameSite: "none",
+		maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
+	});
+	res.cookie("refreshToken", refreshToken, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === "production",
+		sameSite: "none",
+		maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+	});
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Email Verified Successfully",
+		data: {
+			accessToken,
+			refreshToken,
+			user,
+		},
+	});
+});
 
 const loginUser = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
@@ -128,6 +161,7 @@ const googleLoginCallback = catchAsync(
 
 export const authController = {
 	register,
+	verifyPatientEmail,
 	loginUser,
 	refreshToken,
 	googleLoginCallback,
