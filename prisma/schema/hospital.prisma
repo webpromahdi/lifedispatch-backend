@@ -6,7 +6,7 @@ model Hospital {
   lng              Decimal              @db.Decimal(10, 7)
   phone            String               @db.VarChar(20)
   emergencyContact String               @db.VarChar(20)
-  capabilities     HospitalCapability[]
+  capabilities     String[]
 
   totalErBeds     Int
   availableErBeds Int

@@ -1,7 +1,7 @@
 model IncidentTimeline {
   id          String            @id @default(uuid()) @db.Uuid
   emergencyId String            @db.Uuid
-  eventType   TimelineEventType
+  eventType   String            @db.VarChar(100)
 
   oldValue String? @db.Text
   newValue String? @db.Text
@@ -13,7 +13,7 @@ model IncidentTimeline {
 
   createdAt DateTime @default(now())
 
-  emergency EmergencyRequest @relation(fields: [emergencyId], references: [id])
+  emergency EmergencyRequest @relation(fields: [emergencyId], references: [id], onDelete: Cascade)
 
   @@index([emergencyId])
   @@index([createdAt])

@@ -16,10 +16,10 @@ model Dispatch {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  emergency  EmergencyRequest @relation(fields: [emergencyId], references: [id])
-  ambulance  Ambulance        @relation(fields: [ambulanceId], references: [id])
-  driver     Driver           @relation(fields: [driverId], references: [id])
-  dispatcher User             @relation("DispatchedBy", fields: [dispatchedBy], references: [id])
+  emergency  EmergencyRequest @relation(fields: [emergencyId], references: [id], onDelete: Cascade)
+  ambulance  Ambulance        @relation(fields: [ambulanceId], references: [id], onDelete: Cascade)
+  driver     Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  dispatcher User             @relation("DispatchedBy", fields: [dispatchedBy], references: [id], onDelete: Cascade)
   trip       Trip?
 
   @@index([emergencyId])

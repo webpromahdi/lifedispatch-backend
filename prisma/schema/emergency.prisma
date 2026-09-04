@@ -32,9 +32,9 @@ model EmergencyRequest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  patient            User               @relation("PatientEmergencies", fields: [patientId], references: [id])
-  priorityDispatcher User?              @relation("PrioritizedBy", fields: [prioritySetBy], references: [id])
-  cancelledByUser    User?              @relation("CancelledBy", fields: [cancelledBy], references: [id])
+  patient            User               @relation("PatientEmergencies", fields: [patientId], references: [id], onDelete: Cascade)
+  priorityDispatcher User?              @relation("PrioritizedBy", fields: [prioritySetBy], references: [id], onDelete: SetNull)
+  cancelledByUser    User?              @relation("CancelledBy", fields: [cancelledBy], references: [id], onDelete: SetNull)
   dispatches         Dispatch[]
   trips              Trip[]
   timeline           IncidentTimeline[]

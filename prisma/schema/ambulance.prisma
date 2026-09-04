@@ -3,7 +3,7 @@ model Ambulance {
   registrationNumber String                @unique @db.VarChar(50)
   type               AmbulanceType
   status             AmbulanceStatus       @default(AVAILABLE)
-  capabilities       AmbulanceCapability[]
+  capabilities       String[]
 
   baseLocationLat Decimal  @db.Decimal(10, 7)
   baseLocationLng Decimal  @db.Decimal(10, 7)

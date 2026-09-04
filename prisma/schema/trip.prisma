@@ -21,12 +21,12 @@ model Trip {
 
   createdAt DateTime @default(now())
 
-  dispatch  Dispatch         @relation(fields: [dispatchId], references: [id])
-  emergency EmergencyRequest @relation(fields: [emergencyId], references: [id])
-  ambulance Ambulance        @relation(fields: [ambulanceId], references: [id])
-  driver    Driver           @relation(fields: [driverId], references: [id])
-  patient   User             @relation("PatientTrips", fields: [patientId], references: [id])
-  hospital  Hospital?        @relation(fields: [hospitalId], references: [id])
+  dispatch  Dispatch         @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  emergency EmergencyRequest @relation(fields: [emergencyId], references: [id], onDelete: Cascade)
+  ambulance Ambulance        @relation(fields: [ambulanceId], references: [id], onDelete: Cascade)
+  driver    Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  patient   User             @relation("PatientTrips", fields: [patientId], references: [id], onDelete: Cascade)
+  hospital  Hospital?        @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
   payment   Payment?
 
   @@index([emergencyId])
