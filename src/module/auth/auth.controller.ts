@@ -22,10 +22,10 @@ const register = catchAsync(
 	},
 );
 
-const verifyPatientEmail = catchAsync(async (req: Request, res: Response) => {
+const verifyUserEmail = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
 
-	const result = await authService.verifyPatientEmail(payload);
+	const result = await authService.verifyUserEmail(payload);
 
 	const { accessToken, refreshToken, user } = result;
 
@@ -100,6 +100,32 @@ const loginUser = catchAsync(
 	},
 );
 
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+
+	await authService.forgotPassword(payload);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: `OTP Sent To Email : ${payload.email}`,
+		data: null,
+	});
+});
+
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+	const payload = req.body;
+
+	await authService.resetPassword(payload);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Password Changed Successfully",
+		data: null,
+	});
+});
+
 const refreshToken = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
 		const refreshToken = req.cookies.refreshToken;
@@ -161,8 +187,10 @@ const googleLoginCallback = catchAsync(
 
 export const authController = {
 	register,
-	verifyPatientEmail,
+	verifyUserEmail,
 	loginUser,
+	forgotPassword,
+	resetPassword,
 	refreshToken,
 	googleLoginCallback,
 };
