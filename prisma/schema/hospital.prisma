@@ -22,7 +22,8 @@ model Hospital {
   deletedAt DateTime?
 
   trips      Trip[]
-  ambulances Ambulance[] @relation("HospitalAmbulances")
+  ambulances Ambulance[]    @relation("HospitalAmbulances")
+  staff      HospitalStaff[]
 
   @@map("hospitals")
 }

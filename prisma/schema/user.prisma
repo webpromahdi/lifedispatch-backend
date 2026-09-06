@@ -23,6 +23,8 @@ model User {
   deletedAt DateTime?
 
   driverProfile          Driver?
+  dispatcherProfile      Dispatcher?
+  hospitalStaffProfile   HospitalStaff?
   emergencyRequests      EmergencyRequest[] @relation("PatientEmergencies")
   prioritizedEmergencies EmergencyRequest[] @relation("PrioritizedBy")
   cancelledEmergencies   EmergencyRequest[] @relation("CancelledBy")

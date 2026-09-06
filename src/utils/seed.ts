@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import httpStatus from "http-status";
-import { UserRole } from "../../generated/prisma/enums.js";
+import { CertificationLevel, UserRole } from "../../generated/prisma/enums.js";
 import config from "../config/index.js";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "./AppError.js";
@@ -79,13 +79,45 @@ export const seedTesterAdmin = async () => {
 
 export const seedTesterDriver = async () => {
 	try {
-		await seedUser({
-			label: "Tester Driver",
-			role: UserRole.DRIVER,
-			nameKey: config.tester_driver_name,
-			emailKey: config.tester_driver_email,
-			passwordKey: config.tester_driver_password,
+		const name = config.tester_driver_name;
+		const email = config.tester_driver_email;
+		const password = config.tester_driver_password;
+
+		if (!name || !email || !password) {
+			throw new AppError(
+				httpStatus.INTERNAL_SERVER_ERROR,
+				"Tester Driver name, email, or password is missing in the .env file.",
+			);
+		}
+
+		const existing = await prisma.user.findUnique({ where: { email } });
+		if (existing) {
+			console.log("Tester Driver already exists — skipping.");
+			return;
+		}
+
+		const hashedPassword = await hashPassword(password);
+
+		await prisma.user.create({
+			data: {
+				name,
+				email,
+				password: hashedPassword,
+				role: UserRole.DRIVER,
+				isVerified: true,
+				driverProfile: {
+					create: {
+						licenseNumber: "DL-TEST-001",
+						licenseExpiry: new Date(
+							new Date().setFullYear(new Date().getFullYear() + 5),
+						),
+						certificationLevel: CertificationLevel.PARAMEDIC,
+					},
+				},
+			},
 		});
+
+		console.log("Tester Driver seeded successfully.");
 	} catch (error) {
 		console.error("Error seeding Tester Driver:", error);
 	}
@@ -93,13 +125,41 @@ export const seedTesterDriver = async () => {
 
 export const seedTesterDispatcher = async () => {
 	try {
-		await seedUser({
-			label: "Tester Dispatcher",
-			role: UserRole.DISPATCHER,
-			nameKey: config.tester_dispatcher_name,
-			emailKey: config.tester_dispatcher_email,
-			passwordKey: config.tester_dispatcher_password,
+		const name = config.tester_dispatcher_name;
+		const email = config.tester_dispatcher_email;
+		const password = config.tester_dispatcher_password;
+
+		if (!name || !email || !password) {
+			throw new AppError(
+				httpStatus.INTERNAL_SERVER_ERROR,
+				"Tester Dispatcher name, email, or password is missing in the .env file.",
+			);
+		}
+
+		const existing = await prisma.user.findUnique({ where: { email } });
+		if (existing) {
+			console.log("Tester Dispatcher already exists — skipping.");
+			return;
+		}
+
+		const hashedPassword = await hashPassword(password);
+
+		await prisma.user.create({
+			data: {
+				name,
+				email,
+				password: hashedPassword,
+				role: UserRole.DISPATCHER,
+				isVerified: true,
+				dispatcherProfile: {
+					create: {
+						employeeId: "DISP-TEST-001",
+					},
+				},
+			},
 		});
+
+		console.log("Tester Dispatcher seeded successfully.");
 	} catch (error) {
 		console.error("Error seeding Tester Dispatcher:", error);
 	}
@@ -107,13 +167,63 @@ export const seedTesterDispatcher = async () => {
 
 export const seedTesterHospitalStaff = async () => {
 	try {
-		await seedUser({
-			label: "Tester Hospital Staff",
-			role: UserRole.HOSPITAL_STAFF,
-			nameKey: config.tester_hospital_staff_name,
-			emailKey: config.tester_hospital_staff_email,
-			passwordKey: config.tester_hospital_staff_password,
+		const name = config.tester_hospital_staff_name;
+		const email = config.tester_hospital_staff_email;
+		const password = config.tester_hospital_staff_password;
+
+		if (!name || !email || !password) {
+			throw new AppError(
+				httpStatus.INTERNAL_SERVER_ERROR,
+				"Tester Hospital Staff name, email, or password is missing in the .env file.",
+			);
+		}
+
+		const existing = await prisma.user.findUnique({ where: { email } });
+		if (existing) {
+			console.log("Tester Hospital Staff already exists — skipping.");
+			return;
+		}
+
+		let hospital = await prisma.hospital.findFirst({
+			where: { isActive: true },
 		});
+
+		if (!hospital) {
+			hospital = await prisma.hospital.create({
+				data: {
+					name: "LifeDispatch General Hospital",
+					address: "123 Emergency Ave, Medical District",
+					lat: 40.7128,
+					lng: -74.006,
+					phone: "+1-800-555-0199",
+					emergencyContact: "+1-800-555-0911",
+					totalErBeds: 50,
+					availableErBeds: 25,
+					capabilities: ["Trauma Center", "Cardiac Care", "Neurology"],
+				},
+			});
+		}
+
+		const hashedPassword = await hashPassword(password);
+
+		await prisma.user.create({
+			data: {
+				name,
+				email,
+				password: hashedPassword,
+				role: UserRole.HOSPITAL_STAFF,
+				isVerified: true,
+				hospitalStaffProfile: {
+					create: {
+						employeeId: "HOSP-TEST-001",
+						designation: "ER Manager",
+						hospitalId: hospital.id,
+					},
+				},
+			},
+		});
+
+		console.log("Tester Hospital Staff seeded successfully.");
 	} catch (error) {
 		console.error("Error seeding Tester Hospital Staff:", error);
 	}
