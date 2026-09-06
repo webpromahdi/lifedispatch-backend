@@ -8,6 +8,7 @@ import { globalErrorHandler } from "./middleware/globalErrorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 import { authRoutes } from "./module/auth/auth.route.js";
 import "./config/passport.js";
+import { emergencyRoutes } from "./module/emergencies/emergency.routes.js";
 
 const app: Application = express();
 
@@ -27,6 +28,7 @@ app.use(cookieParser());
 app.use(passport.initialize());
 // Routes
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/emergencies", emergencyRoutes);
 
 app.get("/", (req: Request, res: Response) => {
 	res.status(200).json({

@@ -14,7 +14,7 @@ export interface IVerifyEmailPayload {
 }
 
 export interface ILoginUser {
-	id: string;
+	userId: string;
 	name: string;
 	email: string | null;
 	role: UserRole;

@@ -1,11 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import passport from "passport";
-import type { User } from "../../../generated/prisma/client.js";
 import config from "../../config/index.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { authService } from "./auth.service.js";
+import type { ILoginUser } from "./auth.interface.js";
 
 const register = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
@@ -60,7 +60,7 @@ const loginUser = catchAsync(
 			"local",
 			async (
 				err: Error | null,
-				user: User | false,
+				user: ILoginUser | false,
 				info: { message?: string } | undefined,
 			) => {
 				try {
@@ -156,7 +156,7 @@ const googleLoginCallback = catchAsync(
 			"google",
 			async (
 				err: Error | null,
-				user: User | false,
+				user: ILoginUser | false,
 				info: { message?: string } | undefined,
 			) => {
 				try {

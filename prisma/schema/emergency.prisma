@@ -10,7 +10,7 @@ model EmergencyRequest {
   emergencyType      EmergencyType
   requiredCapability RequiredCapability
   priority           EmergencyPriority?
-  prioritySetBy      String?            @db.Uuid
+  prioritySetBy      String? @db.Uuid
 
   status EmergencyStatus @default(PENDING)
 

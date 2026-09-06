@@ -192,7 +192,7 @@ const loginUser = async (user: ILoginUser) => {
 	}
 
 	const jwtPayload = {
-		id: user.id,
+		id: user.userId,
 		name: user.name,
 		email: user.email,
 		role: user.role,

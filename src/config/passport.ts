@@ -43,7 +43,15 @@ passport.use(
 					});
 				}
 
-				return done(null, user);
+				const userPayload = {
+					userId: user.id,
+					email: user.email || "",
+					name: user.name,
+					role: user.role,
+					status: user.status,
+				};
+
+				return done(null, userPayload);
 			} catch (error) {
 				return done(error);
 			}
@@ -88,7 +96,14 @@ passport.use(
 						},
 					});
 				}
-				return done(null, user);
+				const userPayload = {
+					userId: user.id,
+					email: user.email || "",
+					name: user.name,
+					role: user.role,
+					status: user.status,
+				};
+				return done(null, userPayload);
 			}
 
 			user = await prisma.user.create({
@@ -101,7 +116,15 @@ passport.use(
 				},
 			});
 
-			return done(null, user);
+			const userPayload = {
+				userId: user.id,
+				email: user.email || "",
+				name: user.name,
+				role: user.role,
+				status: user.status,
+			};
+
+			return done(null, userPayload);
 		},
 	),
 );
