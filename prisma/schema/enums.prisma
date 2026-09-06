@@ -1,9 +1,10 @@
 enum UserRole {
+  SUPER_ADMIN
+  ADMIN
   PATIENT
   DISPATCHER
   DRIVER
   HOSPITAL_STAFF
-  ADMIN
 }
 
 enum UserStatus {

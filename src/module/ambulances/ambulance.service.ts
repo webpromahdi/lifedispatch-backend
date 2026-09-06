@@ -1,5 +1,9 @@
 import httpStatus from "http-status";
-import type { AmbulanceStatus, AmbulanceType, Prisma } from "../../../generated/prisma/browser.js";
+import type {
+	AmbulanceStatus,
+	AmbulanceType,
+	Prisma,
+} from "../../../generated/prisma/browser.js";
 import { UserRole } from "../../../generated/prisma/enums.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
@@ -8,27 +12,17 @@ import type {
 	IUpdateAmbulancePayload,
 } from "./ambulance.interface.js";
 
-// Reusable include block for all single-record queries
-const ambulanceFullInclude = {
+const ambulanceExtendedDetails = {
 	driver: {
 		include: {
 			user: {
-				omit: { password: true as const },
+				omit: { password: true },
 			},
 		},
 	},
-	hospital: {
-		select: {
-			id: true,
-			name: true,
-			address: true,
-			phone: true,
-			diversionStatus: true,
-		},
-	},
+	hospital: true,
 } satisfies Prisma.AmbulanceInclude;
 
-// Validate a hospital exists and is not deleted
 const assertHospitalExists = async (hospitalId: string) => {
 	const hospital = await prisma.hospital.findUnique({
 		where: { id: hospitalId, deletedAt: null },
@@ -73,7 +67,7 @@ const createAmbulanceIntoDB = async (payload: ICreateAmbulancePayload) => {
 				: undefined,
 			manufacturedYear: payload.manufacturedYear,
 		},
-		include: ambulanceFullInclude,
+		include: ambulanceExtendedDetails,
 	});
 
 	return ambulance;
@@ -101,30 +95,7 @@ const getAllAmbulancesFromDB = async (
 			orderBy: { createdAt: "desc" },
 			skip,
 			take: limit,
-			include: {
-				driver: {
-					include: {
-						user: {
-							select: {
-								id: true,
-								name: true,
-								email: true,
-								phone: true,
-								role: true,
-							},
-						},
-					},
-				},
-				hospital: {
-					select: {
-						id: true,
-						name: true,
-						address: true,
-						phone: true,
-						diversionStatus: true,
-					},
-				},
-			},
+			include: ambulanceExtendedDetails,
 		}),
 		prisma.ambulance.count({ where: whereConditions }),
 	]);
@@ -143,7 +114,7 @@ const getAllAmbulancesFromDB = async (
 const getAmbulanceById = async (ambulanceId: string) => {
 	const ambulance = await prisma.ambulance.findUnique({
 		where: { id: ambulanceId, deletedAt: null },
-		include: ambulanceFullInclude,
+		include: ambulanceExtendedDetails,
 	});
 
 	if (!ambulance) {
@@ -165,7 +136,6 @@ const updateAmbulanceInDB = async (
 		throw new AppError(httpStatus.NOT_FOUND, "Ambulance not found.");
 	}
 
-	// Check for registration number conflict if being changed
 	if (
 		payload.registrationNumber &&
 		payload.registrationNumber !== ambulance.registrationNumber
@@ -181,34 +151,20 @@ const updateAmbulanceInDB = async (
 		}
 	}
 
-	// Validate hospital exists when hospitalId is being set (not cleared)
 	if (payload.hospitalId) {
 		await assertHospitalExists(payload.hospitalId);
 	}
 
+	const { lastServiceDate, nextServiceDue, ...rest } = payload;
+
 	const updated = await prisma.ambulance.update({
 		where: { id: ambulanceId },
 		data: {
-			registrationNumber: payload.registrationNumber,
-			type: payload.type,
-			capabilities: payload.capabilities,
-			baseLocationLat: payload.baseLocationLat,
-			baseLocationLng: payload.baseLocationLng,
-			currentLat: payload.currentLat,
-			currentLng: payload.currentLng,
-			// Allow explicit null to detach the hospital relation
-			...(payload.hospitalId !== undefined && {
-				hospitalId: payload.hospitalId,
-			}),
-			lastServiceDate: payload.lastServiceDate
-				? new Date(payload.lastServiceDate)
-				: undefined,
-			nextServiceDue: payload.nextServiceDue
-				? new Date(payload.nextServiceDue)
-				: undefined,
-			manufacturedYear: payload.manufacturedYear,
+			...rest,
+			lastServiceDate: lastServiceDate ? new Date(lastServiceDate) : undefined,
+			nextServiceDue: nextServiceDue ? new Date(nextServiceDue) : undefined,
 		},
-		include: ambulanceFullInclude,
+		include: ambulanceExtendedDetails,
 	});
 
 	return updated;
@@ -229,7 +185,6 @@ const updateAmbulanceStatusInDB = async (
 		throw new AppError(httpStatus.NOT_FOUND, "Ambulance not found.");
 	}
 
-	// Drivers can only update the status of their own assigned ambulance
 	if (requesterRole === UserRole.DRIVER) {
 		if (!ambulance.driver || ambulance.driver.userId !== requesterId) {
 			throw new AppError(

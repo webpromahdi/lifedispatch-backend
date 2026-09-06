@@ -12,34 +12,34 @@ import {
 const router = Router();
 
 router.post(
-	"/",
-	auth(UserRole.ADMIN),
+	"/create",
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
 	validateRequest(createAmbulanceSchema),
 	ambulanceController.createAmbulance,
 );
 
 router.get(
 	"/",
-	auth(UserRole.ADMIN, UserRole.DISPATCHER),
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DISPATCHER),
 	ambulanceController.getAllAmbulances,
 );
 
 router.get(
 	"/:id",
-	auth(UserRole.ADMIN, UserRole.DISPATCHER),
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DISPATCHER),
 	ambulanceController.getAmbulanceById,
 );
 
 router.patch(
 	"/:id",
-	auth(UserRole.ADMIN),
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
 	validateRequest(updateAmbulanceSchema),
 	ambulanceController.updateAmbulance,
 );
 
 router.patch(
 	"/:id/status",
-	auth(UserRole.ADMIN, UserRole.DRIVER),
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DRIVER),
 	validateRequest(updateAmbulanceStatusSchema),
 	ambulanceController.updateAmbulanceStatus,
 );
