@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+	EmergencyPriority,
 	EmergencyType,
 	RequiredCapability,
 } from "../../../generated/prisma/enums.js";
@@ -42,4 +43,17 @@ export const createEmergencySchema = z.object({
 		.string()
 		.min(1, "Caller phone is required.")
 		.max(20, "Caller phone must not exceed 20 characters."),
+});
+
+export const updatePrioritySchema = z.object({
+	priority: z.nativeEnum(EmergencyPriority, {
+		error: `Invalid priority. Allowed: ${Object.values(EmergencyPriority).join(", ")}`,
+	}),
+});
+
+export const cancelEmergencySchema = z.object({
+	reason: z
+		.string()
+		.min(1, "Cancellation reason is required.")
+		.max(1000, "Reason must not exceed 1000 characters."),
 });
