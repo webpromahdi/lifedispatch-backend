@@ -1,9 +1,11 @@
 model Ambulance {
-  id                 String                @id @default(uuid()) @db.Uuid
-  registrationNumber String                @unique @db.VarChar(50)
+  id                 String          @id @default(uuid()) @db.Uuid
+  registrationNumber String          @unique @db.VarChar(50)
   type               AmbulanceType
-  status             AmbulanceStatus       @default(AVAILABLE)
+  status             AmbulanceStatus @default(AVAILABLE)
   capabilities       String[]
+
+  hospitalId String? @db.Uuid
 
   baseLocationLat Decimal  @db.Decimal(10, 7)
   baseLocationLng Decimal  @db.Decimal(10, 7)
@@ -23,6 +25,8 @@ model Ambulance {
   driver     Driver?
   dispatches Dispatch[]
   trips      Trip[]
+
+  hospital Hospital? @relation("HospitalAmbulances", fields: [hospitalId], references: [id], onDelete: SetNull)
 
   @@map("ambulances")
 }

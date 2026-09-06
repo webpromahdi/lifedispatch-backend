@@ -1,11 +1,11 @@
 model Hospital {
-  id               String               @id @default(uuid()) @db.Uuid
-  name             String               @db.VarChar(255)
-  address          String               @db.Text
-  lat              Decimal              @db.Decimal(10, 7)
-  lng              Decimal              @db.Decimal(10, 7)
-  phone            String               @db.VarChar(20)
-  emergencyContact String               @db.VarChar(20)
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String   @db.VarChar(255)
+  address          String   @db.Text
+  lat              Decimal  @db.Decimal(10, 7)
+  lng              Decimal  @db.Decimal(10, 7)
+  phone            String   @db.VarChar(20)
+  emergencyContact String   @db.VarChar(20)
   capabilities     String[]
 
   totalErBeds     Int
@@ -21,7 +21,8 @@ model Hospital {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  trips Trip[]
+  trips      Trip[]
+  ambulances Ambulance[] @relation("HospitalAmbulances")
 
   @@map("hospitals")
 }

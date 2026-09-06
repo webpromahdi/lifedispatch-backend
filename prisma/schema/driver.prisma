@@ -5,9 +5,9 @@ model Driver {
   licenseExpiry      DateTime           @db.Date
   certificationLevel CertificationLevel
 
-  isOnShift   Boolean @default(false)
-  shiftStart  DateTime?
-  shiftEnd    DateTime?
+  isOnShift  Boolean   @default(false)
+  shiftStart DateTime?
+  shiftEnd   DateTime?
 
   totalTripsCompleted Int @default(0)
 
