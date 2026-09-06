@@ -15,4 +15,18 @@ router.post(
 	emergencyController.createEmergency,
 );
 
+router.get("/", auth(UserRole.PATIENT), emergencyController.getMyEmergencies);
+
+router.get(
+	"/:id",
+	auth(
+		UserRole.PATIENT,
+		UserRole.DISPATCHER,
+		UserRole.DRIVER,
+		UserRole.HOSPITAL_STAFF,
+		UserRole.ADMIN,
+	),
+	emergencyController.getEmergencyById,
+);
+
 export const emergencyRoutes = router;

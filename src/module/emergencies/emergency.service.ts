@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import { EmergencyStatus } from "../../../generated/prisma/enums.js";
+import { EmergencyStatus, UserRole } from "../../../generated/prisma/enums.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import type { ICreateEmergencyPayload } from "./emergency.interface.js";
@@ -79,6 +79,88 @@ const createEmergencyIntoDB = async (
 	return result;
 };
 
+const getMyEmergencies = async (
+	patientId: string,
+	page: number,
+	limit: number,
+) => {
+	const skip = (page - 1) * limit;
+
+	const [emergencies, total] = await Promise.all([
+		prisma.emergencyRequest.findMany({
+			where: { patientId },
+			orderBy: { createdAt: "desc" },
+			skip,
+			take: limit,
+			include: {
+				patient: {
+					omit: {
+						password: true,
+					},
+				},
+			},
+		}),
+		prisma.emergencyRequest.count({ where: { patientId } }),
+	]);
+
+	return {
+		emergencies,
+		meta: {
+			page,
+			limit,
+			total,
+			totalPages: Math.ceil(total / limit),
+		},
+	};
+};
+
+const getEmergencyById = async (
+	emergencyId: string,
+	requesterId: string,
+	requesterRole: UserRole,
+) => {
+	const emergency = await prisma.emergencyRequest.findUnique({
+		where: { id: emergencyId },
+		include: {
+			patient: {
+				omit: { password: true },
+			},
+			timeline: {
+				orderBy: { createdAt: "asc" },
+			},
+			dispatches: {
+				orderBy: { createdAt: "desc" },
+				include: {
+					ambulance: true,
+					driver: {
+						include: {
+							user: { omit: { password: true } },
+						},
+					},
+				},
+			},
+		},
+	});
+
+	if (!emergency) {
+		throw new AppError(httpStatus.NOT_FOUND, "Emergency request not found.");
+	}
+
+	if (
+		requesterRole === UserRole.PATIENT &&
+		emergency.patientId !== requesterId
+	) {
+		throw new AppError(
+			httpStatus.FORBIDDEN,
+			"You do not have permission to view this emergency.",
+		);
+	}
+
+	return emergency;
+};
+
 export const emergencyService = {
 	createEmergencyIntoDB,
+	getMyEmergencies,
+	getEmergencyById,
 };

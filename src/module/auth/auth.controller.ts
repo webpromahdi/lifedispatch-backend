@@ -4,8 +4,8 @@ import passport from "passport";
 import config from "../../config/index.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
-import { authService } from "./auth.service.js";
 import type { ILoginUser } from "./auth.interface.js";
+import { authService } from "./auth.service.js";
 
 const register = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
