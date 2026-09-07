@@ -37,3 +37,21 @@ export interface IUpdateDiversionPayload {
 	diversionReason?: string;
 	availableErBeds?: number;
 }
+
+export interface ICreateStaffPayload {
+	name: string;
+	email: string;
+	password: string;
+	phone?: string;
+	designation?: string;
+	employeeId?: string;
+	canManageStaff?: boolean;
+}
+
+export interface IUpdateStaffPayload {
+	name?: string;
+	phone?: string;
+	designation?: string;
+	employeeId?: string;
+	canManageStaff?: boolean;
+}

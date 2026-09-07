@@ -156,3 +156,79 @@ export const updateDiversionSchema = z.object({
 		.min(0, "Available ER beds must be a non-negative integer.")
 		.optional(),
 });
+
+export const createStaffSchema = z.object({
+	name: z
+		.string()
+		.min(1, "Name is required.")
+		.max(255, "Name must not exceed 255 characters."),
+
+	email: z
+		.string()
+		.min(1, "Email is required.")
+		.email("Email must be a valid email address."),
+
+	password: z
+		.string()
+		.min(8, "Password must be at least 8 characters.")
+		.max(100, "Password must not exceed 100 characters."),
+
+	phone: z
+		.string()
+		.min(1, "Phone must not be empty.")
+		.max(20, "Phone must not exceed 20 characters.")
+		.optional(),
+
+	designation: z
+		.string()
+		.min(1, "Designation must not be empty.")
+		.max(100, "Designation must not exceed 100 characters.")
+		.optional(),
+
+	employeeId: z
+		.string()
+		.min(1, "Employee ID must not be empty.")
+		.max(100, "Employee ID must not exceed 100 characters.")
+		.optional(),
+
+	canManageStaff: z.boolean().optional(),
+});
+
+export const updateStaffSchema = z
+	.object({
+		name: z
+			.string()
+			.min(1, "Name must not be empty.")
+			.max(255, "Name must not exceed 255 characters.")
+			.optional(),
+
+		phone: z
+			.string()
+			.min(1, "Phone must not be empty.")
+			.max(20, "Phone must not exceed 20 characters.")
+			.optional(),
+
+		designation: z
+			.string()
+			.min(1, "Designation must not be empty.")
+			.max(100, "Designation must not exceed 100 characters.")
+			.optional(),
+
+		employeeId: z
+			.string()
+			.min(1, "Employee ID must not be empty.")
+			.max(100, "Employee ID must not exceed 100 characters.")
+			.nullable()
+			.optional(),
+
+		canManageStaff: z.boolean().optional(),
+	})
+	.refine((data) => Object.keys(data).length > 0, {
+		message: "At least one field must be provided for update.",
+	});
+
+export const toggleShiftSchema = z.object({
+	action: z.enum(["start", "end"], {
+		error: "Action must be either 'start' or 'end'.",
+	}),
+});

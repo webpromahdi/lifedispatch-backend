@@ -5,8 +5,11 @@ import { validateRequest } from "../../middleware/validateRequest.js";
 import { hospitalController } from "./hospital.controller.js";
 import {
 	createHospitalSchema,
+	createStaffSchema,
+	toggleShiftSchema,
 	updateDiversionSchema,
 	updateHospitalSchema,
+	updateStaffSchema,
 } from "./hospital.validation.js";
 
 const router = Router();
@@ -30,6 +33,13 @@ router.get(
 );
 
 router.patch(
+	"/staff/me/shift",
+	auth(UserRole.HOSPITAL_STAFF),
+	validateRequest(toggleShiftSchema),
+	hospitalController.toggleShift,
+);
+
+router.patch(
 	"/:id",
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),
 	validateRequest(updateHospitalSchema),
@@ -41,6 +51,32 @@ router.patch(
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),
 	validateRequest(updateDiversionSchema),
 	hospitalController.updateDiversion,
+);
+
+router.post(
+	"/:id/staff",
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),
+	validateRequest(createStaffSchema),
+	hospitalController.createStaff,
+);
+
+router.get(
+	"/:id/staff",
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),
+	hospitalController.getAllStaff,
+);
+
+router.patch(
+	"/:id/staff/:staffId",
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),
+	validateRequest(updateStaffSchema),
+	hospitalController.updateStaff,
+);
+
+router.delete(
+	"/:id/staff/:staffId",
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),
+	hospitalController.deleteStaff,
 );
 
 export const hospitalRoutes = router;

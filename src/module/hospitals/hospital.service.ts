@@ -10,8 +10,10 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import type {
 	ICreateHospitalPayload,
+	ICreateStaffPayload,
 	IUpdateDiversionPayload,
 	IUpdateHospitalPayload,
+	IUpdateStaffPayload,
 } from "./hospital.interface.js";
 
 const hospitalBasicInclude = {
@@ -251,9 +253,300 @@ const updateDiversionInDB = async (
 	return updated;
 };
 
+const createStaffIntoDB = async (
+	hospitalId: string,
+	payload: ICreateStaffPayload,
+) => {
+	const hospital = await prisma.hospital.findUnique({
+		where: { id: hospitalId, isActive: true },
+	});
+
+	if (!hospital) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Hospital not found or is no longer active.",
+		);
+	}
+
+	const emailConflict = await prisma.user.findUnique({
+		where: { email: payload.email },
+	});
+
+	if (emailConflict) {
+		throw new AppError(
+			httpStatus.CONFLICT,
+			`A user with email "${payload.email}" already exists.`,
+		);
+	}
+
+	if (payload.employeeId) {
+		const employeeIdConflict = await prisma.hospitalStaff.findUnique({
+			where: { employeeId: payload.employeeId },
+		});
+
+		if (employeeIdConflict) {
+			throw new AppError(
+				httpStatus.CONFLICT,
+				`Employee ID "${payload.employeeId}" is already in use.`,
+			);
+		}
+	}
+
+	const hashedPassword = await bcrypt.hash(
+		payload.password,
+		Number(config.bcrypt_salt_rounds),
+	);
+
+	const result = await prisma.$transaction(async (tx) => {
+		const newUser = await tx.user.create({
+			data: {
+				name: payload.name,
+				email: payload.email,
+				phone: payload.phone ?? null,
+				password: hashedPassword,
+				role: UserRole.HOSPITAL_STAFF,
+				isVerified: true,
+			},
+			omit: { password: true },
+		});
+
+		const staffRecord = await tx.hospitalStaff.create({
+			data: {
+				userId: newUser.id,
+				hospitalId,
+				designation: payload.designation ?? null,
+				employeeId: payload.employeeId ?? null,
+				canManageStaff: payload.canManageStaff ?? false,
+			},
+		});
+
+		return { ...newUser, staffProfile: staffRecord };
+	});
+
+	return result;
+};
+
+const getAllStaffFromDB = async (
+	hospitalId: string,
+	page: number,
+	limit: number,
+	filters: {
+		canManageStaff?: boolean;
+		isOnShift?: boolean;
+		search?: string;
+	},
+) => {
+	const hospital = await prisma.hospital.findUnique({
+		where: { id: hospitalId, isActive: true },
+	});
+
+	if (!hospital) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Hospital not found or is no longer active.",
+		);
+	}
+
+	const skip = (page - 1) * limit;
+	const whereConditions: Prisma.HospitalStaffWhereInput = { hospitalId };
+
+	if (filters.canManageStaff !== undefined) {
+		whereConditions.canManageStaff = filters.canManageStaff;
+	}
+
+	if (filters.isOnShift !== undefined) {
+		whereConditions.isOnShift = filters.isOnShift;
+	}
+
+	if (filters.search) {
+		whereConditions.user = {
+			OR: [
+				{ name: { contains: filters.search, mode: "insensitive" } },
+				{ email: { contains: filters.search, mode: "insensitive" } },
+			],
+		};
+	}
+
+	const [staff, total] = await Promise.all([
+		prisma.hospitalStaff.findMany({
+			where: whereConditions,
+			orderBy: { createdAt: "desc" },
+			skip,
+			take: limit,
+			include: {
+				user: {
+					omit: { password: true },
+				},
+			},
+		}),
+		prisma.hospitalStaff.count({ where: whereConditions }),
+	]);
+
+	return {
+		staff,
+		meta: {
+			page,
+			limit,
+			total,
+			totalPages: Math.ceil(total / limit),
+		},
+	};
+};
+
+const updateStaffInDB = async (
+	hospitalId: string,
+	staffId: string,
+	payload: IUpdateStaffPayload,
+) => {
+	const staffRecord = await prisma.hospitalStaff.findFirst({
+		where: { id: staffId, hospitalId },
+	});
+
+	if (!staffRecord) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Staff member not found in this hospital.",
+		);
+	}
+
+	if (payload.employeeId && payload.employeeId !== staffRecord.employeeId) {
+		const conflict = await prisma.hospitalStaff.findUnique({
+			where: { employeeId: payload.employeeId },
+		});
+		if (conflict) {
+			throw new AppError(
+				httpStatus.CONFLICT,
+				`Employee ID "${payload.employeeId}" is already in use.`,
+			);
+		}
+	}
+
+	const { name, phone, ...staffFields } = payload;
+
+	await prisma.$transaction(async (tx) => {
+		if (name !== undefined || phone !== undefined) {
+			await tx.user.update({
+				where: { id: staffRecord.userId },
+				data: {
+					name: name ?? undefined,
+					phone: phone ?? undefined,
+				},
+			});
+		}
+
+		await tx.hospitalStaff.update({
+			where: { id: staffId },
+			data: staffFields,
+		});
+	});
+
+	const updated = await prisma.hospitalStaff.findUnique({
+		where: { id: staffId },
+		include: {
+			user: { omit: { password: true } },
+		},
+	});
+
+	return updated;
+};
+
+const deleteStaffInDB = async (hospitalId: string, staffId: string) => {
+	const staffRecord = await prisma.hospitalStaff.findFirst({
+		where: { id: staffId, hospitalId },
+		include: { user: true },
+	});
+
+	if (!staffRecord) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Staff member not found in this hospital.",
+		);
+	}
+
+	if (staffRecord.user.isDeleted) {
+		throw new AppError(
+			httpStatus.CONFLICT,
+			"This staff member is already deleted.",
+		);
+	}
+
+	// Enforce at least 1 active staff invariant
+	const activeStaffCount = await prisma.hospitalStaff.count({
+		where: {
+			hospitalId,
+			user: { isDeleted: false },
+		},
+	});
+
+	if (activeStaffCount <= 1) {
+		throw new AppError(
+			httpStatus.CONFLICT,
+			"Cannot delete the last active staff member of a hospital.",
+		);
+	}
+
+	await prisma.user.update({
+		where: { id: staffRecord.userId },
+		data: {
+			isDeleted: true,
+			deletedAt: new Date(),
+		},
+	});
+};
+
+const toggleShiftInDB = async (userId: string, action: "start" | "end") => {
+	const staffRecord = await prisma.hospitalStaff.findUnique({
+		where: { userId },
+	});
+
+	if (!staffRecord) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Hospital staff profile not found for the authenticated user.",
+		);
+	}
+
+	if (action === "start") {
+		if (staffRecord.isOnShift) {
+			throw new AppError(
+				httpStatus.CONFLICT,
+				"Shift is already active. End the current shift before starting a new one.",
+			);
+		}
+
+		return prisma.hospitalStaff.update({
+			where: { userId },
+			data: {
+				isOnShift: true,
+				shiftStart: new Date(),
+				shiftEnd: null,
+			},
+			include: { user: { omit: { password: true } } },
+		});
+	}
+
+	if (!staffRecord.isOnShift) {
+		throw new AppError(httpStatus.CONFLICT, "No active shift to end.");
+	}
+
+	return prisma.hospitalStaff.update({
+		where: { userId },
+		data: {
+			isOnShift: false,
+			shiftEnd: new Date(),
+		},
+		include: { user: { omit: { password: true } } },
+	});
+};
+
 export const hospitalService = {
 	createHospitalIntoDB,
 	getAllHospitalsFromDB,
 	updateHospitalInDB,
 	updateDiversionInDB,
+	createStaffIntoDB,
+	getAllStaffFromDB,
+	updateStaffInDB,
+	deleteStaffInDB,
+	toggleShiftInDB,
 };
