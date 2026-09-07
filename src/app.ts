@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import type { Application, Request, Response } from "express";
 import express from "express";
+import helmet from "helmet";
 import passport from "passport";
 import config from "./config/index.js";
 import { globalErrorHandler } from "./middleware/globalErrorHandler.js";
@@ -14,10 +15,16 @@ import { emergencyRoutes } from "./module/emergencies/emergency.routes.js";
 
 const app: Application = express();
 
+// Security headers
+app.use(helmet());
+
+// CORS configuration
 app.use(
 	cors({
 		origin: config.app_url,
 		credentials: true,
+		methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+		allowedHeaders: ["Content-Type", "Authorization"],
 	}),
 );
 

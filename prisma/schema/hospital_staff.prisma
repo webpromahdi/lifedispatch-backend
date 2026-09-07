@@ -4,7 +4,8 @@ model HospitalStaff {
   hospitalId String @db.Uuid
 
   employeeId  String? @unique @db.VarChar(100)
-  designation String? @db.VarChar(100)
+  designation    String? @db.VarChar(100)
+  canManageStaff Boolean @default(false)
 
   isOnShift  Boolean   @default(false)
   shiftStart DateTime?

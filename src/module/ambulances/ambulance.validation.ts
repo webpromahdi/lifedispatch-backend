@@ -28,10 +28,7 @@ export const createAmbulanceSchema = z.object({
 		.min(-180, "Longitude must be between -180 and 180.")
 		.max(180, "Longitude must be between -180 and 180."),
 
-	hospitalId: z
-		.string()
-		.uuid("Hospital ID must be a valid UUID.")
-		.optional(),
+	hospitalId: z.string().uuid("Hospital ID must be a valid UUID.").optional(),
 
 	lastServiceDate: z.iso.date().optional(),
 
