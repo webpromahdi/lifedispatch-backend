@@ -39,7 +39,24 @@ export const auth = (...requiredRoles: UserRole[]) => {
 		const verifiedToken = jwtUtils.verifyToken(token, config.jwt_access_secret);
 
 		if (!verifiedToken.success) {
-			throw new AppError(httpStatus.UNAUTHORIZED, verifiedToken.error);
+			const jwtError = verifiedToken.error ?? "";
+
+			let friendlyMessage =
+				"You are not logged in. Please log in to access this resource.";
+
+			if (jwtError.includes("expired")) {
+				friendlyMessage =
+					"Your session has expired. Please log in again.";
+			} else if (
+				jwtError.includes("malformed") ||
+				jwtError.includes("invalid") ||
+				jwtError.includes("signature")
+			) {
+				friendlyMessage =
+					"Invalid token. Please log in again.";
+			}
+
+			throw new AppError(httpStatus.UNAUTHORIZED, friendlyMessage);
 		}
 
 		const { email, name, id: userId, role } = verifiedToken.data as JwtPayload;

@@ -12,6 +12,7 @@ import "./config/passport.js";
 import { ambulanceRoutes } from "./module/ambulances/ambulance.routes.js";
 import { driverRoutes } from "./module/drivers/driver.routes.js";
 import { emergencyRoutes } from "./module/emergencies/emergency.routes.js";
+import { hospitalRoutes } from "./module/hospitals/hospital.routes.js";
 
 const app: Application = express();
 
@@ -41,6 +42,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/emergencies", emergencyRoutes);
 app.use("/api/v1/ambulances", ambulanceRoutes);
 app.use("/api/v1/drivers", driverRoutes);
+app.use("/api/v1/hospitals", hospitalRoutes);
 
 app.get("/", (req: Request, res: Response) => {
 	res.status(200).json({
