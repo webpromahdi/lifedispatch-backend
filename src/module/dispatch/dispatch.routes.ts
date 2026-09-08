@@ -20,7 +20,7 @@ router.post(
 );
 
 router.post(
-	"/",
+	"/create",
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DISPATCHER),
 	validateRequest(createDispatchSchema),
 	dispatchController.createDispatch,
