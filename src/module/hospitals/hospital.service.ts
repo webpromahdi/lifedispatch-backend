@@ -38,6 +38,19 @@ const createHospitalIntoDB = async (payload: ICreateHospitalPayload) => {
 		);
 	}
 
+	if (payload.staffPhone) {
+		const phoneConflict = await prisma.user.findUnique({
+			where: { phone: payload.staffPhone },
+		});
+
+		if (phoneConflict) {
+			throw new AppError(
+				httpStatus.CONFLICT,
+				`A user with phone number "${payload.staffPhone}" already exists.`,
+			);
+		}
+	}
+
 	if (payload.staffEmployeeId) {
 		const employeeIdConflict = await prisma.hospitalStaff.findUnique({
 			where: { employeeId: payload.staffEmployeeId },
@@ -279,6 +292,19 @@ const createStaffIntoDB = async (
 		);
 	}
 
+	if (payload.phone) {
+		const phoneConflict = await prisma.user.findUnique({
+			where: { phone: payload.phone },
+		});
+
+		if (phoneConflict) {
+			throw new AppError(
+				httpStatus.CONFLICT,
+				`A user with phone number "${payload.phone}" already exists.`,
+			);
+		}
+	}
+
 	if (payload.employeeId) {
 		const employeeIdConflict = await prisma.hospitalStaff.findUnique({
 			where: { employeeId: payload.employeeId },
@@ -453,7 +479,6 @@ const updateStaffInDB = async (
 const deleteStaffInDB = async (hospitalId: string, staffId: string) => {
 	const staffRecord = await prisma.hospitalStaff.findFirst({
 		where: { id: staffId, hospitalId },
-		include: { user: true },
 	});
 
 	if (!staffRecord) {
@@ -463,19 +488,9 @@ const deleteStaffInDB = async (hospitalId: string, staffId: string) => {
 		);
 	}
 
-	if (staffRecord.user.isDeleted) {
-		throw new AppError(
-			httpStatus.CONFLICT,
-			"This staff member is already deleted.",
-		);
-	}
-
 	// Enforce at least 1 active staff invariant
 	const activeStaffCount = await prisma.hospitalStaff.count({
-		where: {
-			hospitalId,
-			user: { isDeleted: false },
-		},
+		where: { hospitalId },
 	});
 
 	if (activeStaffCount <= 1) {
@@ -485,12 +500,8 @@ const deleteStaffInDB = async (hospitalId: string, staffId: string) => {
 		);
 	}
 
-	await prisma.user.update({
+	await prisma.user.delete({
 		where: { id: staffRecord.userId },
-		data: {
-			isDeleted: true,
-			deletedAt: new Date(),
-		},
 	});
 };
 

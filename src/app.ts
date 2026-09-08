@@ -10,6 +10,7 @@ import { notFound } from "./middleware/notFound.js";
 import { authRoutes } from "./module/auth/auth.route.js";
 import "./config/passport.js";
 import { ambulanceRoutes } from "./module/ambulances/ambulance.routes.js";
+import { dispatchRoutes } from "./module/dispatch/dispatch.routes.js";
 import { driverRoutes } from "./module/drivers/driver.routes.js";
 import { emergencyRoutes } from "./module/emergencies/emergency.routes.js";
 import { hospitalRoutes } from "./module/hospitals/hospital.routes.js";
@@ -43,6 +44,7 @@ app.use("/api/v1/emergencies", emergencyRoutes);
 app.use("/api/v1/ambulances", ambulanceRoutes);
 app.use("/api/v1/drivers", driverRoutes);
 app.use("/api/v1/hospitals", hospitalRoutes);
+app.use("/api/v1/dispatch", dispatchRoutes);
 
 app.get("/", (req: Request, res: Response) => {
 	res.status(200).json({

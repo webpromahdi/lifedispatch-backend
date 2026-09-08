@@ -54,7 +54,7 @@ router.patch(
 );
 
 router.post(
-	"/:id/staff",
+	"/:id/staff/create",
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),
 	validateRequest(createStaffSchema),
 	hospitalController.createStaff,
