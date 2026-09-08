@@ -15,8 +15,8 @@ import type {
 	IUpdateTripStatusPayload,
 } from "./trip.interface.js";
 
-const FARE_BASE_USD = 50;
-const FARE_PER_KM_USD = 3.5;
+const FARE_BASE_BDT = 500; // Base fare in Taka
+const FARE_PER_KM_BDT = 35; // Per-km charge in Taka
 
 function generateInvoiceNumber(): string {
 	const timestamp = Date.now().toString(36).toUpperCase();
@@ -57,14 +57,14 @@ function generateInvoicePDF(
 
 		// Line items
 		doc.text("-------------------------------------------");
-		doc.text(`Base Fare:          $${payment.baseFare.toFixed(2)}`);
-		doc.text(`Distance Charges:   $${payment.distanceCharge.toFixed(2)}`);
+		doc.text(`Base Fare:          BDT ${payment.baseFare.toFixed(2)}`);
+		doc.text(`Distance Charges:   BDT ${payment.distanceCharge.toFixed(2)}`);
 		doc.text(`Total Distance:     ${trip.distanceKm ?? 0} km`);
 		doc.text("-------------------------------------------");
 		doc
 			.fontSize(14)
 			.font("Helvetica-Bold")
-			.text(`Total Amount Due: $${payment.totalAmount.toFixed(2)}`);
+			.text(`Total Amount Due: BDT ${payment.totalAmount.toFixed(2)} TK`);
 		doc.font("Helvetica"); // reset font
 
 		// Footer disclaimer
@@ -376,8 +376,8 @@ const completeTrip = async (
 	}
 
 	const distanceKm = payload.distanceKm;
-	const baseFare = FARE_BASE_USD;
-	const distanceCharge = Math.round(distanceKm * FARE_PER_KM_USD * 100) / 100;
+	const baseFare = FARE_BASE_BDT;
+	const distanceCharge = Math.round(distanceKm * FARE_PER_KM_BDT * 100) / 100;
 	const totalAmount = Math.round((baseFare + distanceCharge) * 100) / 100;
 
 	const now = new Date();
@@ -430,7 +430,7 @@ const completeTrip = async (
 				baseFare,
 				distanceCharge,
 				totalAmount,
-				currency: "USD",
+				currency: "BDT",
 			},
 		});
 
@@ -442,7 +442,7 @@ const completeTrip = async (
 				newValue: TripStatus.COMPLETED,
 				triggeredBy: userId,
 				triggeredByRole: UserRole.DRIVER,
-				notes: `Trip completed. Distance: ${distanceKm} km. Invoice ${invoiceNumber} generated. Total: $${totalAmount}.`,
+				notes: `Trip completed. Distance: ${distanceKm} km. Invoice ${invoiceNumber} generated. Total: ৳${totalAmount} BDT.`,
 			},
 		});
 

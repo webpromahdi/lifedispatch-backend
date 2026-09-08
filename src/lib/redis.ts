@@ -9,3 +9,12 @@ export const redisClient = createClient({
 		port: Number(config.redis_port),
 	},
 });
+
+// Prevent unhandled 'error' events from crashing the process
+redisClient.on("error", (err: Error) => {
+	console.error("[Redis] Connection error:", err.message);
+});
+
+redisClient.on("reconnecting", () => {
+	console.warn("[Redis] Reconnecting...");
+});
