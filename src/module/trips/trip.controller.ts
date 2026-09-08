@@ -55,8 +55,41 @@ const selectHospital = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const completeTrip = catchAsync(async (req: Request, res: Response) => {
+	const tripId = req.params.id as string;
+	const userId = req.user!.userId as string;
+	const payload = req.body;
+
+	const { invoicePdf, ...result } = await tripService.completeTrip(
+		tripId,
+		userId,
+		payload,
+	);
+
+	// If the client explicitly requests a PDF, stream it directly
+	if (req.accepts("application/pdf")) {
+		res.set({
+			"Content-Type": "application/pdf",
+			"Content-Disposition": `attachment; filename="invoice-${result.payment.invoiceNumber}.pdf"`,
+			"Content-Length": invoicePdf.length,
+		});
+		return res.end(invoicePdf);
+	}
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.CREATED,
+		message: "Trip completed and invoice generated successfully.",
+		data: {
+			...result,
+			invoicePdfBase64: invoicePdf.toString("base64"),
+		},
+	});
+});
+
 export const tripController = {
 	getTripById,
 	updateTripStatus,
 	selectHospital,
+	completeTrip,
 };

@@ -4,6 +4,7 @@ import { auth } from "../../middleware/checkAuth.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
 import { tripController } from "./trip.controller.js";
 import {
+	completeTripSchema,
 	selectHospitalSchema,
 	updateTripStatusSchema,
 } from "./trip.validation.js";
@@ -39,6 +40,13 @@ router.patch(
 	),
 	validateRequest(selectHospitalSchema),
 	tripController.selectHospital,
+);
+
+router.post(
+	"/:id/complete",
+	auth(UserRole.DRIVER),
+	validateRequest(completeTripSchema),
+	tripController.completeTrip,
 );
 
 export const tripRoutes = router;
