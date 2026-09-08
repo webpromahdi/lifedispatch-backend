@@ -14,28 +14,22 @@ import type {
 	IRejectDispatchPayload,
 } from "./dispatch.interface.js";
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
 /** How many minutes a driver has to accept a dispatch before it times out. */
-const DISPATCH_TIMEOUT_MINUTES = 2;
+const dispatchTimeoutMinutes = 2;
 
-/** Weights for the scoring algorithm (must sum to 1.0). */
-const WEIGHTS = {
+/** weights for the scoring algorithm (must sum to 1.0). */
+const weights = {
 	distance: 0.5,
 	priority: 0.3,
 	type: 0.2,
 };
 
-/** Capability → ambulance type compatibility map.
- *  Key = RequiredCapability, Value = ideal AmbulanceType(s) */
-const CAPABILITY_TYPE_MAP: Record<string, string[]> = {
+const capabilityTypeMap: Record<string, string[]> = {
 	ALS: ["ADVANCED_LIFE_SUPPORT"],
 	BLS: ["BASIC_LIFE_SUPPORT", "PATIENT_TRANSPORT"],
 	NEONATAL: ["NEONATAL"],
 	BARIATRIC: ["BARIATRIC"],
 };
-
-// ─── Haversine distance ───────────────────────────────────────────────────────
 
 function haversineKm(
 	lat1: number,
@@ -43,19 +37,26 @@ function haversineKm(
 	lat2: number,
 	lng2: number,
 ): number {
-	const R = 6371; // Earth radius in km
-	const dLat = ((lat2 - lat1) * Math.PI) / 180;
-	const dLng = ((lng2 - lng1) * Math.PI) / 180;
-	const a =
+	const R = 6371;
+	const TO_RAD = Math.PI / 180;
+
+	const radLat1 = lat1 * TO_RAD;
+	const radLat2 = lat2 * TO_RAD;
+
+	const dLat = (lat2 - lat1) * TO_RAD;
+	const dLng = (lng2 - lng1) * TO_RAD;
+
+	const angularRatio =
 		Math.sin(dLat / 2) ** 2 +
-		Math.cos((lat1 * Math.PI) / 180) *
-			Math.cos((lat2 * Math.PI) / 180) *
-			Math.sin(dLng / 2) ** 2;
-	return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(dLng / 2) ** 2;
+
+	const centralAngle =
+		2 * Math.atan2(Math.sqrt(angularRatio), Math.sqrt(1 - angularRatio));
+
+	return R * centralAngle;
 }
 
-// ─── Scoring helpers ──────────────────────────────────────────────────────────
-
+// ─── Scoring helpers
 /**
  * Priority score: how well the ambulance capability matches the emergency.
  * ALS emergency → ALS = 1.0, BLS = 0.3
@@ -65,9 +66,9 @@ function computePriorityScore(
 	requiredCapability: string,
 	ambulanceType: string,
 ): number {
-	const idealTypes = CAPABILITY_TYPE_MAP[requiredCapability] ?? [];
+	const idealTypes = capabilityTypeMap[requiredCapability] ?? [];
 	if (idealTypes.includes(ambulanceType)) return 1.0;
-	// ALS ambulance handling a BLS call — over-qualified but acceptable
+
 	if (ambulanceType === "ADVANCED_LIFE_SUPPORT") return 0.8;
 	return 0.5;
 }
@@ -80,25 +81,15 @@ function computeTypeScore(
 	requiredCapability: string,
 	ambulanceType: string,
 ): number {
-	const idealTypes = CAPABILITY_TYPE_MAP[requiredCapability] ?? [];
+	const idealTypes = capabilityTypeMap[requiredCapability] ?? [];
 	if (idealTypes.includes(ambulanceType)) return 1.0;
 	// Overqualified
 	return 0.8;
 }
 
-// ─── Service functions ────────────────────────────────────────────────────────
-
-/**
- * Step 1: Validate the emergency is in a dispatchable state.
- * Step 2: Fetch all AVAILABLE ambulances with an ON_SHIFT driver assigned.
- * Step 3: Filter by capability match.
- * Step 4: Score and rank candidates.
- * Returns top 5 candidates.
- */
 const recommendAmbulances = async (
 	emergencyId: string,
 ): Promise<IAmbulanceCandidate[]> => {
-	// 1. Fetch emergency
 	const emergency = await prisma.emergencyRequest.findUnique({
 		where: { id: emergencyId },
 	});
@@ -127,7 +118,6 @@ const recommendAmbulances = async (
 		);
 	}
 
-	// 2. Fetch available ambulances that have an on-shift driver
 	const availableAmbulances = await prisma.ambulance.findMany({
 		where: {
 			status: AmbulanceStatus.AVAILABLE,
@@ -154,17 +144,13 @@ const recommendAmbulances = async (
 	const emergencyLng = Number(emergency.locationLng);
 	const requiredCapability = emergency.requiredCapability;
 
-	// 3. Filter by capability match
 	const eligible = availableAmbulances.filter((amb) => {
 		if (!amb.driver) return false;
 
-		// Must have the required capability (e.g. "ALS", "BLS", etc.)
-		const requiredStr = String(requiredCapability);
+		const requiredCapabilityStr = String(requiredCapability);
 
-		// The ambulance capabilities array stores strings.
-		// We also ensure the ambulance type isn't completely wrong.
-		const idealTypes = CAPABILITY_TYPE_MAP[requiredStr] ?? [];
-		const overqualifiedTypes = ["ADVANCED_LIFE_SUPPORT"]; // ALS can handle BLS calls
+		const idealTypes = capabilityTypeMap[requiredCapabilityStr] ?? [];
+		const overqualifiedTypes = ["ADVANCED_LIFE_SUPPORT"];
 
 		const typeOk =
 			idealTypes.includes(amb.type) || overqualifiedTypes.includes(amb.type);
@@ -176,7 +162,6 @@ const recommendAmbulances = async (
 		return [];
 	}
 
-	// 4. Compute distances and find max for normalization
 	const withDistance = eligible.map((amb) => {
 		const ambLat = Number(amb.currentLat ?? amb.baseLocationLat);
 		const ambLng = Number(amb.currentLng ?? amb.baseLocationLng);
@@ -186,7 +171,6 @@ const recommendAmbulances = async (
 
 	const maxDistance = Math.max(...withDistance.map((w) => w.distanceKm), 1);
 
-	// 5. Score and rank
 	const scored: IAmbulanceCandidate[] = withDistance.map(
 		({ amb, distanceKm }) => {
 			const distanceScore = 1 - distanceKm / maxDistance;
@@ -197,9 +181,9 @@ const recommendAmbulances = async (
 			const typeScore = computeTypeScore(String(requiredCapability), amb.type);
 
 			const score =
-				WEIGHTS.distance * distanceScore +
-				WEIGHTS.priority * priorityScore +
-				WEIGHTS.type * typeScore;
+				weights.distance * distanceScore +
+				weights.priority * priorityScore +
+				weights.type * typeScore;
 
 			return {
 				ambulanceId: amb.id,
@@ -220,21 +204,9 @@ const recommendAmbulances = async (
 		},
 	);
 
-	// Sort descending by score, return top 5
 	return scored.sort((a, b) => b.score - a.score).slice(0, 5);
 };
 
-/**
- * Atomically assigns an ambulance to an emergency using optimistic locking.
- * Uses the ambulance `version` field to prevent duplicate dispatch.
- *
- * Flow:
- * 1. Validate emergency state
- * 2. Validate ambulance is AVAILABLE with an on-shift driver
- * 3. Within a transaction: update ambulance with version check → create Dispatch
- *    → update Emergency status → append IncidentTimeline
- * 4. If 0 rows affected by the ambulance update → 409 Conflict
- */
 const createDispatch = async (
 	payload: ICreateDispatchPayload,
 	dispatcherId: string,
@@ -242,7 +214,6 @@ const createDispatch = async (
 ) => {
 	const { emergencyId, ambulanceId } = payload;
 
-	// 1. Fetch emergency
 	const emergency = await prisma.emergencyRequest.findUnique({
 		where: { id: emergencyId },
 	});
@@ -261,7 +232,6 @@ const createDispatch = async (
 		);
 	}
 
-	// 2. Fetch ambulance with its current driver
 	const ambulance = await prisma.ambulance.findUnique({
 		where: { id: ambulanceId, deletedAt: null },
 		include: {
@@ -286,16 +256,15 @@ const createDispatch = async (
 		);
 	}
 
-	if (!ambulance.driver || !ambulance.driver.isOnShift) {
+	if (!ambulance.driver?.isOnShift) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
 			"This ambulance has no assigned on-shift driver.",
 		);
 	}
 
-	// 3. Capability check
 	const requiredCapability = String(emergency.requiredCapability);
-	const idealTypes = CAPABILITY_TYPE_MAP[requiredCapability] ?? [];
+	const idealTypes = capabilityTypeMap[requiredCapability] ?? [];
 	const overqualifiedTypes = ["ADVANCED_LIFE_SUPPORT"];
 	const capabilityOk =
 		idealTypes.includes(ambulance.type) ||
@@ -309,13 +278,12 @@ const createDispatch = async (
 	}
 
 	const currentVersion = ambulance.version;
-	const timeoutAt = new Date(
-		Date.now() + DISPATCH_TIMEOUT_MINUTES * 60 * 1000,
-	);
+	const timeoutAt = new Date(Date.now() + dispatchTimeoutMinutes * 60 * 1000);
 
-	// 4. Atomic dispatch inside a transaction
+	const driverId = ambulance.driver?.id as string;
+
 	const result = await prisma.$transaction(async (tx) => {
-		// Optimistic lock: update ONLY if status is still AVAILABLE and version matches
+		// update ONLY if status is still AVAILABLE and version matches
 		const updated = await tx.ambulance.updateMany({
 			where: {
 				id: ambulanceId,
@@ -341,7 +309,7 @@ const createDispatch = async (
 			data: {
 				emergencyId,
 				ambulanceId,
-				driverId: ambulance.driver!.id,
+				driverId,
 				dispatchedBy: dispatcherId,
 				status: DispatchStatus.PENDING_ACCEPTANCE,
 				timeoutAt,
@@ -390,18 +358,7 @@ const createDispatch = async (
 	return result;
 };
 
-/**
- * Driver accepts the dispatch assigned to them.
- *
- * Flow:
- * 1. Verify the calling driver owns this dispatch
- * 2. Verify dispatch is PENDING_ACCEPTANCE and not timed out
- * 3. Transition: Dispatch → ACCEPTED, Emergency → ACTIVE_TRIP
- * 4. Create Trip record
- * 5. Append IncidentTimeline
- */
 const acceptDispatch = async (dispatchId: string, userId: string) => {
-	// Find the driver profile for the current user
 	const driver = await prisma.driver.findUnique({
 		where: { userId },
 	});
@@ -413,7 +370,6 @@ const acceptDispatch = async (dispatchId: string, userId: string) => {
 		);
 	}
 
-	// Fetch dispatch
 	const dispatch = await prisma.dispatch.findUnique({
 		where: { id: dispatchId },
 		include: {
@@ -426,7 +382,6 @@ const acceptDispatch = async (dispatchId: string, userId: string) => {
 		throw new AppError(httpStatus.NOT_FOUND, "Dispatch record not found.");
 	}
 
-	// Ownership check
 	if (dispatch.driverId !== driver.id) {
 		throw new AppError(
 			httpStatus.FORBIDDEN,
@@ -441,7 +396,6 @@ const acceptDispatch = async (dispatchId: string, userId: string) => {
 		);
 	}
 
-	// Timeout check
 	if (new Date() > dispatch.timeoutAt) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
@@ -450,7 +404,6 @@ const acceptDispatch = async (dispatchId: string, userId: string) => {
 	}
 
 	const result = await prisma.$transaction(async (tx) => {
-		// Update dispatch
 		const updatedDispatch = await tx.dispatch.update({
 			where: { id: dispatchId },
 			data: {
@@ -459,7 +412,6 @@ const acceptDispatch = async (dispatchId: string, userId: string) => {
 			},
 		});
 
-		// Create Trip record
 		const trip = await tx.trip.create({
 			data: {
 				dispatchId,
@@ -471,13 +423,11 @@ const acceptDispatch = async (dispatchId: string, userId: string) => {
 			},
 		});
 
-		// Move emergency to ACTIVE_TRIP
 		await tx.emergencyRequest.update({
 			where: { id: dispatch.emergencyId },
 			data: { status: EmergencyStatus.ACTIVE_TRIP },
 		});
 
-		// Append timeline
 		await tx.incidentTimeline.create({
 			data: {
 				emergencyId: dispatch.emergencyId,
@@ -509,15 +459,6 @@ const acceptDispatch = async (dispatchId: string, userId: string) => {
 	return result;
 };
 
-/**
- * Driver rejects the dispatch assigned to them.
- *
- * Flow:
- * 1. Verify ownership + status PENDING_ACCEPTANCE
- * 2. Dispatch → REJECTED, Ambulance → AVAILABLE (version unchanged, just status reset)
- * 3. Emergency reverts to DISPATCHING (so dispatcher can reassign)
- * 4. Append IncidentTimeline
- */
 const rejectDispatch = async (
 	dispatchId: string,
 	userId: string,
@@ -556,7 +497,6 @@ const rejectDispatch = async (
 	}
 
 	const result = await prisma.$transaction(async (tx) => {
-		// Mark dispatch as rejected
 		const updatedDispatch = await tx.dispatch.update({
 			where: { id: dispatchId },
 			data: {
@@ -566,19 +506,16 @@ const rejectDispatch = async (
 			},
 		});
 
-		// Return ambulance to available pool
 		await tx.ambulance.update({
 			where: { id: dispatch.ambulanceId },
 			data: { status: AmbulanceStatus.AVAILABLE },
 		});
 
-		// Keep emergency in DISPATCHING so dispatcher can reassign
 		await tx.emergencyRequest.update({
 			where: { id: dispatch.emergencyId },
 			data: { status: EmergencyStatus.DISPATCHING },
 		});
 
-		// Append timeline
 		await tx.incidentTimeline.create({
 			data: {
 				emergencyId: dispatch.emergencyId,
@@ -597,18 +534,6 @@ const rejectDispatch = async (
 	return result;
 };
 
-/**
- * Dispatcher or Admin cancels an active dispatch.
- *
- * Cancellable states: PENDING_ACCEPTANCE (before driver responds).
- * After acceptance, use trip cancellation instead.
- *
- * Flow:
- * 1. Verify dispatch is PENDING_ACCEPTANCE
- * 2. Dispatch → CANCELLED, Ambulance → AVAILABLE
- * 3. Emergency reverts to DISPATCHING
- * 4. Append IncidentTimeline
- */
 const cancelDispatch = async (
 	dispatchId: string,
 	userId: string,
@@ -637,19 +562,16 @@ const cancelDispatch = async (
 			data: { status: DispatchStatus.CANCELLED },
 		});
 
-		// Return ambulance to pool
 		await tx.ambulance.update({
 			where: { id: dispatch.ambulanceId },
 			data: { status: AmbulanceStatus.AVAILABLE },
 		});
 
-		// Revert emergency to DISPATCHING so dispatcher can reassign
 		await tx.emergencyRequest.update({
 			where: { id: dispatch.emergencyId },
 			data: { status: EmergencyStatus.DISPATCHING },
 		});
 
-		// Append timeline
 		await tx.incidentTimeline.create({
 			data: {
 				emergencyId: dispatch.emergencyId,

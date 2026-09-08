@@ -12,8 +12,6 @@ import {
 
 const router = Router();
 
-// POST /api/v1/dispatch/recommend
-// Dispatcher: Run algorithm → return ranked ambulance candidates
 router.post(
 	"/recommend",
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DISPATCHER),
@@ -21,8 +19,6 @@ router.post(
 	dispatchController.recommendAmbulances,
 );
 
-// POST /api/v1/dispatch
-// Dispatcher: Assign ambulance (atomic + optimistic lock)
 router.post(
 	"/",
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DISPATCHER),
@@ -30,16 +26,12 @@ router.post(
 	dispatchController.createDispatch,
 );
 
-// POST /api/v1/dispatch/:id/accept
-// Driver: Accept dispatch
 router.post(
 	"/:id/accept",
 	auth(UserRole.DRIVER),
 	dispatchController.acceptDispatch,
 );
 
-// POST /api/v1/dispatch/:id/reject
-// Driver: Reject dispatch with reason
 router.post(
 	"/:id/reject",
 	auth(UserRole.DRIVER),
@@ -47,8 +39,6 @@ router.post(
 	dispatchController.rejectDispatch,
 );
 
-// POST /api/v1/dispatch/:id/cancel
-// Dispatcher / Admin: Cancel a pending dispatch
 router.post(
 	"/:id/cancel",
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.DISPATCHER),
