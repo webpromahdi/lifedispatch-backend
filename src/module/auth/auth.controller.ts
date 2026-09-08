@@ -175,7 +175,7 @@ const googleLoginCallback = catchAsync(
 						await authService.loginUser(user);
 
 					res.redirect(
-						`${config.app_url}/api/v1/auth/google?accessToken=${accessToken}&refreshToken=${refreshToken}`,
+						`${config.frontend_url}/api/v1/auth/google?accessToken=${accessToken}&refreshToken=${refreshToken}`,
 					);
 				} catch (error) {
 					next(error);

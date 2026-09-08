@@ -11,7 +11,7 @@ model Payment {
   discount          Decimal @default(0) @db.Decimal(10, 2)
   totalAmount       Decimal @db.Decimal(10, 2)
 
-  currency String @default("USD") @db.VarChar(5)
+  currency String @default("BDT") @db.VarChar(5)
 
   paymentStatus      PaymentStatus @default(PENDING)
   paymentMethod      String?       @db.VarChar(50)

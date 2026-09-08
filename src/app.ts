@@ -15,6 +15,7 @@ import { driverRoutes } from "./module/drivers/driver.routes.js";
 import { emergencyRoutes } from "./module/emergencies/emergency.routes.js";
 import { hospitalRoutes } from "./module/hospitals/hospital.routes.js";
 import { tripRoutes } from "./module/trips/trip.routes.js";
+import { paymentRoutes } from "./module/payment/payment.route.js";
 
 const app: Application = express();
 
@@ -24,7 +25,7 @@ app.use(helmet());
 // CORS configuration
 app.use(
 	cors({
-		origin: config.app_url,
+		origin: config.frontend_url,
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 		allowedHeaders: ["Content-Type", "Authorization"],
@@ -47,6 +48,7 @@ app.use("/api/v1/drivers", driverRoutes);
 app.use("/api/v1/hospitals", hospitalRoutes);
 app.use("/api/v1/dispatch", dispatchRoutes);
 app.use("/api/v1/trips", tripRoutes);
+app.use("/api/v1/payment", paymentRoutes);
 
 app.get("/", (req: Request, res: Response) => {
 	res.status(200).json({

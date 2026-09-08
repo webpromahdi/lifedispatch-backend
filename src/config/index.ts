@@ -40,4 +40,7 @@ export default {
 	tester_hospital_staff_name: process.env.TESTER_HOSPITAL_STAFF_NAME,
 	tester_hospital_staff_email: process.env.TESTER_HOSPITAL_STAFF_EMAIL,
 	tester_hospital_staff_password: process.env.TESTER_HOSPITAL_STAFF_PASSWORD,
+	frontend_url: process.env.FRONTEND_URL ?? "http://localhost:3000",
+	ssl_commerz_store_id: process.env.SSL_COMMERZ_STORE_ID,
+	ssl_commerz_store_passwd: process.env.SSL_COMMERZ_STORE_PASSWORD,
 };
