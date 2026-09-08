@@ -42,7 +42,7 @@ const initiatePayment = async (paymentId: string, userId: string) => {
 	await prisma.payment.update({
 		where: { id: paymentId },
 		data: {
-			paymentGatewayRef: transactionId,
+			transactionId: transactionId,
 			paymentInitiatedAt: new Date(),
 		},
 	});
@@ -101,7 +101,7 @@ const handleCallback = async (
 		throw new AppError(httpStatus.NOT_FOUND, "Payment record not found.");
 	}
 
-	if (payment.paymentGatewayRef !== transactionId) {
+	if (payment.transactionId !== transactionId) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
 			"Transaction ID mismatch. Possible tampering detected.",
@@ -179,7 +179,7 @@ const handleIpn = async (body: Record<string, unknown>) => {
 	if (!transactionId || !validationId) return;
 
 	const payment = await prisma.payment.findFirst({
-		where: { paymentGatewayRef: transactionId },
+		where: { transactionId: transactionId },
 	});
 
 	if (!payment || payment.paymentStatus === PaymentStatus.PAID) return;

@@ -16,6 +16,7 @@ import { emergencyRoutes } from "./module/emergencies/emergency.routes.js";
 import { hospitalRoutes } from "./module/hospitals/hospital.routes.js";
 import { tripRoutes } from "./module/trips/trip.routes.js";
 import { paymentRoutes } from "./module/payment/payment.route.js";
+import { adminRoutes } from "./module/admin/admin.routes.js";
 
 const app: Application = express();
 
@@ -49,6 +50,7 @@ app.use("/api/v1/hospitals", hospitalRoutes);
 app.use("/api/v1/dispatch", dispatchRoutes);
 app.use("/api/v1/trips", tripRoutes);
 app.use("/api/v1/payment", paymentRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 app.get("/", (req: Request, res: Response) => {
 	res.status(200).json({

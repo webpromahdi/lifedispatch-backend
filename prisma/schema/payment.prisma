@@ -15,7 +15,7 @@ model Payment {
 
   paymentStatus      PaymentStatus @default(PENDING)
   paymentMethod      String?       @db.VarChar(50)
-  paymentGatewayRef  String?       @db.VarChar(255)
+  transactionId      String?       @unique @db.VarChar(255)
   paymentInitiatedAt DateTime?
   paymentConfirmedAt DateTime?
 
