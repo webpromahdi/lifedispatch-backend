@@ -4,6 +4,15 @@ import {
 	AmbulanceType,
 } from "../../../generated/prisma/enums.js";
 
+// Accepts both "YYYY-MM-DD" and full ISO datetime "YYYY-MM-DDTHH:mm:ss.sssZ"
+const flexibleDateSchema = z
+	.string()
+	.regex(
+		/^\d{4}-\d{2}-\d{2}(T.*)?$/,
+		"Date must be in YYYY-MM-DD or ISO datetime format.",
+	)
+	.refine((val) => !isNaN(Date.parse(val)), "Invalid date value.");
+
 export const createAmbulanceSchema = z.object({
 	registrationNumber: z
 		.string()
@@ -18,23 +27,23 @@ export const createAmbulanceSchema = z.object({
 		.array(z.string().min(1, "Capability must not be empty."))
 		.min(1, "At least one capability is required."),
 
-	baseLocationLat: z
+	baseLocationLat: z.coerce
 		.number({ error: "Base location latitude must be a number." })
 		.min(-90, "Latitude must be between -90 and 90.")
 		.max(90, "Latitude must be between -90 and 90."),
 
-	baseLocationLng: z
+	baseLocationLng: z.coerce
 		.number({ error: "Base location longitude must be a number." })
 		.min(-180, "Longitude must be between -180 and 180.")
 		.max(180, "Longitude must be between -180 and 180."),
 
 	hospitalId: z.string().uuid("Hospital ID must be a valid UUID.").optional(),
 
-	lastServiceDate: z.iso.date().optional(),
+	lastServiceDate: flexibleDateSchema.optional(),
 
-	nextServiceDue: z.iso.date().optional(),
+	nextServiceDue: flexibleDateSchema.optional(),
 
-	manufacturedYear: z
+	manufacturedYear: z.coerce
 		.number({ error: "Manufactured year must be a number." })
 		.int("Manufactured year must be an integer.")
 		.min(1900, "Manufactured year must be after 1900.")
@@ -64,25 +73,25 @@ export const updateAmbulanceSchema = z
 			.min(1, "At least one capability is required.")
 			.optional(),
 
-		baseLocationLat: z
+		baseLocationLat: z.coerce
 			.number({ error: "Base location latitude must be a number." })
 			.min(-90, "Latitude must be between -90 and 90.")
 			.max(90, "Latitude must be between -90 and 90.")
 			.optional(),
 
-		baseLocationLng: z
+		baseLocationLng: z.coerce
 			.number({ error: "Base location longitude must be a number." })
 			.min(-180, "Longitude must be between -180 and 180.")
 			.max(180, "Longitude must be between -180 and 180.")
 			.optional(),
 
-		currentLat: z
+		currentLat: z.coerce
 			.number({ error: "Current latitude must be a number." })
 			.min(-90, "Latitude must be between -90 and 90.")
 			.max(90, "Latitude must be between -90 and 90.")
 			.optional(),
 
-		currentLng: z
+		currentLng: z.coerce
 			.number({ error: "Current longitude must be a number." })
 			.min(-180, "Longitude must be between -180 and 180.")
 			.max(180, "Longitude must be between -180 and 180.")
@@ -94,11 +103,11 @@ export const updateAmbulanceSchema = z
 			.nullable()
 			.optional(),
 
-		lastServiceDate: z.iso.date().optional(),
+		lastServiceDate: flexibleDateSchema.optional(),
 
-		nextServiceDue: z.iso.date().optional(),
+		nextServiceDue: flexibleDateSchema.optional(),
 
-		manufacturedYear: z
+		manufacturedYear: z.coerce
 			.number({ error: "Manufactured year must be a number." })
 			.int("Manufactured year must be an integer.")
 			.min(1900, "Manufactured year must be after 1900.")

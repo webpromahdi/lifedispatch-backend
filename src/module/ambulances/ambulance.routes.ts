@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { UserRole } from "../../../generated/prisma/enums.js";
+import { upload } from "../../lib/multer.js";
 import { auth } from "../../middleware/checkAuth.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
 import { ambulanceController } from "./ambulance.controller.js";
@@ -14,6 +15,7 @@ const router = Router();
 router.post(
 	"/create",
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN),
+	upload.single("registrationDocument"),
 	validateRequest(createAmbulanceSchema),
 	ambulanceController.createAmbulance,
 );

@@ -6,6 +6,7 @@ import {
 } from "../../../generated/prisma/enums.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
+import { uploadToCloudinary } from "../../utils/uploadToCloudinary.js";
 import { ambulanceService } from "./ambulance.service.js";
 
 const VALID_STATUSES = Object.values(AmbulanceStatus);
@@ -19,7 +20,22 @@ function isValidEnum<T extends string>(
 }
 
 const createAmbulance = catchAsync(async (req: Request, res: Response) => {
-	const payload = req.body;
+	let registrationDocumentUrl: string | undefined;
+
+	if (req.file) {
+		const uploaded = await uploadToCloudinary(
+			req.file.buffer,
+			"lifedispatch/ambulances",
+			"raw",
+			req.file.originalname,
+		);
+		registrationDocumentUrl = uploaded.secure_url;
+	}
+
+	const payload = {
+		...req.body,
+		...(registrationDocumentUrl && { registrationDocumentUrl }),
+	};
 
 	const ambulance = await ambulanceService.createAmbulanceIntoDB(payload);
 

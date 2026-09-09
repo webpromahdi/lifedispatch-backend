@@ -112,6 +112,7 @@ export const seedTesterDriver = async () => {
 							new Date().setFullYear(new Date().getFullYear() + 5),
 						),
 						certificationLevel: CertificationLevel.PARAMEDIC,
+						licenseDocumentUrl: "https://placeholder.example.com/seed-license.pdf",
 					},
 				},
 			},

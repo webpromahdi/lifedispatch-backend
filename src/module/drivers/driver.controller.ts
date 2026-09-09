@@ -23,6 +23,8 @@ const createDriver = catchAsync(async (req: Request, res: Response) => {
 	const uploaded = await uploadToCloudinary(
 		req.file.buffer,
 		"lifedispatch/drivers",
+		"raw",
+		req.file.originalname,
 	);
 
 	const payload = {

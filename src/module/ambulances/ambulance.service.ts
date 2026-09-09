@@ -66,6 +66,7 @@ const createAmbulanceIntoDB = async (payload: ICreateAmbulancePayload) => {
 				? new Date(payload.nextServiceDue)
 				: undefined,
 			manufacturedYear: payload.manufacturedYear,
+			registrationDocumentUrl: payload.registrationDocumentUrl,
 		},
 		include: ambulanceExtendedDetails,
 	});

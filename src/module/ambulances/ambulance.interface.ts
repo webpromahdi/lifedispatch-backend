@@ -13,6 +13,7 @@ export interface ICreateAmbulancePayload {
 	lastServiceDate?: string;
 	nextServiceDue?: string;
 	manufacturedYear?: number;
+	registrationDocumentUrl: string;
 }
 
 export interface IUpdateAmbulancePayload {
