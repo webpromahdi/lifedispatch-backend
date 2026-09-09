@@ -11,6 +11,7 @@
 		"dev": "tsx watch src/server.ts",
 		"build": "prisma generate && tsc",
 		"start": "node dist/src/server.js",
+		"vercel-build": "prisma generate --config prisma7.config.ts",
 		"format:check": "npx @biomejs/biome format ./src",
 		"format:fix": "npx @biomejs/biome format --write ./src",
 		"lint:check": "npx @biomejs/biome lint ./src",
