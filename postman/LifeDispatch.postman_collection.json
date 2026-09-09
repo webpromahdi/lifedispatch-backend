@@ -1,0 +1,1494 @@
+{
+  "info": {
+    "_postman_id": "7c3d288d-ecad-4439-b0a9-05f99b69a9f6",
+    "name": "LifeDispatch",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36172995"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Mahdi Al Hasan\",\r\n    \"email\": \"mahdi.ah.web@gmail.com\",\r\n    \"password\": \"Mahdi@12345\",\r\n    \"role\": \"PATIENT\",\r\n    \"phone\": \"+8801712345678\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify email",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"mahdi.ah.web@gmail.com\",\r\n    \"otp\" : \"736059\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verify-email"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "//patient\r\n// {\r\n//     \"email\": \"mahdi.ah.web@gmail.com\",\r\n//     \"password\": \"MahdiAl@12345\"\r\n// }\r\n// 1. Super Admin\r\n{\r\n  \"email\": \"superadmin@lifedispatch.com\",\r\n  \"password\": \"SuperAdmin@123\"\r\n}\r\n// 2. Tester Admin\r\n// {\r\n//   \"email\": \"admin@lifedispatch.com\",\r\n//   \"password\": \"Admin@123\"\r\n// }\r\n// 3. Tester Dispatcher\r\n// {\r\n//   \"email\": \"dispatcher@lifedispatch.com\",\r\n//   \"password\": \"Dispatcher@123\"\r\n// }\r\n// 4. Tester Driver\r\n// {\r\n//   \"email\": \"driver@lifedispatch.com\",\r\n//   \"password\": \"Driver@123\"\r\n// }\r\n// {\r\n//     \"email\": \"rahim@lifedispatch.com\",\r\n//     \"password\": \"securePassword123\"\r\n// }\r\n// {\r\n//     \"email\": \"karim.driver@test.com\",\r\n//     \"password\": \"password123\"\r\n// }\r\n// 5. Tester Hospital Staff\r\n// {\r\n//   \"email\": \"hospitalstaff@lifedispatch.com\",\r\n//   \"password\": \"HospitalStaff@123\"\r\n// }\r\n// {\r\n//     \"email\": \"rahim.er@dmch.gov.bd\",\r\n//     \"password\": \"StrongPassword123!\"\r\n// }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "RefreshToken",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"mahdi.ah.web@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"mahdi.ah.web@gmail.com\",\r\n    \"otp\":\"968372\",\r\n    \"newPassword\": \"MahdiAl@12345\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Emergency",
+      "item": [
+        {
+          "name": "Create Emergency",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"emergencyType\": \"CARDIAC\",\r\n    \"requiredCapability\": \"ALS\",\r\n    \"description\": \"65-year-old male, experiencing severe chest pain and shortness of breath. Patient is conscious but sweating profusely.\",\r\n    \"locationAddress\": \"123 Maple Street, Gulshan, Dhaka\",\r\n    \"locationLat\": 23.7937,\r\n    \"locationLng\": 90.4066,\r\n    \"callerName\": \"Ahmed Karim\",\r\n    \"callerPhone\": \"+8801712345678\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/emergencies/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emergencies",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "All Emergencies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/emergencies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emergencies"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Emergency",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/emergencies/68aef8b4-d652-456b-a658-0371b8bc1a2a",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emergencies",
+                "68aef8b4-d652-456b-a658-0371b8bc1a2a"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Priority",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "//only admin and dispather can update this\r\n{\r\n  \"priority\": \"P1_CRITICAL\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/emergencies/68aef8b4-d652-456b-a658-0371b8bc1a2a/priority",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emergencies",
+                "68aef8b4-d652-456b-a658-0371b8bc1a2a",
+                "priority"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Emergency",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"reason\": \"The patient recovered before the ambulance arrived.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/emergencies/68aef8b4-d652-456b-a658-0371b8bc1a2a/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "emergencies",
+                "68aef8b4-d652-456b-a658-0371b8bc1a2a",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Ambulance",
+      "item": [
+        {
+          "name": "Register a New Ambulance",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"registrationNumber\": \"AMB-1002\",\r\n    \"type\": \"ADVANCED_LIFE_SUPPORT\",\r\n    \"capabilities\": [\r\n        \"ALS\",\r\n        \"Ventilator\",\r\n        \"Defibrillator\"\r\n    ],\r\n    \"baseLocationLat\": 23.7950,\r\n    \"baseLocationLng\": 90.4000,\r\n    \"lastServiceDate\": \"2026-01-01\",\r\n    \"nextServiceDue\": \"2026-10-01\",\r\n    \"manufacturedYear\": 2021\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ambulances/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ambulances",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Ambulances",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ambulances",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ambulances"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Ambulance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ambulances/dd9a218d-e1c0-4eca-9798-dc8ef2e353e4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ambulances",
+                "dd9a218d-e1c0-4eca-9798-dc8ef2e353e4"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Ambulance",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"type\": \"BASIC_LIFE_SUPPORT\",\r\n    \"currentLat\": 40.7135,\r\n    \"currentLng\": -74.0068,\r\n    \"hospitalId\": null\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ambulances/dd9a218d-e1c0-4eca-9798-dc8ef2e353e4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ambulances",
+                "dd9a218d-e1c0-4eca-9798-dc8ef2e353e4"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Ambulance Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"BUSY\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ambulances/dd9a218d-e1c0-4eca-9798-dc8ef2e353e4/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ambulances",
+                "dd9a218d-e1c0-4eca-9798-dc8ef2e353e4",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Driver",
+      "item": [
+        {
+          "name": "Create a Driver",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Mohammad Karim",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "karim.driver@test.com",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "01700000000",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "password123",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseNumber",
+                  "value": "DL-123456",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseExpiry",
+                  "value": "2030-12-31",
+                  "type": "text"
+                },
+                {
+                  "key": "certificationLevel",
+                  "value": "PARAMEDIC",
+                  "type": "text"
+                },
+                {
+                  "key": "assignedAmbulanceId",
+                  "value": "409658c9-4dec-463f-99ca-dda27cd05eae",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "licenseDocument",
+                  "type": "file",
+                  "src": [
+                    "/C:/Users/user/Downloads/demo_driver_licence.pdf"
+                  ]
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/drivers/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// drivers?page=1&limit=10&isOnShift=true&certificationLevel=PARAMEDIC",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/drivers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Driver",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/dd9a218d-e1c0-4eca-9798-dc8ef2e353e4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "dd9a218d-e1c0-4eca-9798-dc8ef2e353e4"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Driver Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"licenseNumber\": \"DL-2026-112233\",\r\n    \"licenseExpiry\": \"2030-01-01\",\r\n    \"certificationLevel\": \"EMT_ADVANCED\",\r\n    \"assignedAmbulanceId\": \"dd9a218d-e1c0-4eca-9798-dc8ef2e353e4\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/drivers/4c6b6ba4-273a-406e-a70e-0e931edf1656",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "4c6b6ba4-273a-406e-a70e-0e931edf1656"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Driver Shift",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"action\": \"start\" \r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/drivers/me/shift",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "me",
+                "shift"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Hospitals",
+      "item": [
+        {
+          "name": "Create Hospital",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dhaka Medical College Hospital\",\n  \"address\": \"Secretariat Road, Dhaka 1000\",\n  \"lat\": 23.7258,\n  \"lng\": 90.3976,\n  \"phone\": \"+880255165088\",\n  \"emergencyContact\": \"+8801711000000\",\n  \"capabilities\": [\"TRAUMA\", \"CARDIAC\", \"NEONATAL\", \"ICU\", \"BURN_UNIT\"],\n  \"totalErBeds\": 50,\n  \"availableErBeds\": 20,\n  \"staffName\": \"Dr. Kamal Hossain\",\n  \"staffEmail\": \"kamal.er@dmch.gov.bd\",\n  \"staffPassword\": \"StrongPassword123!\",\n  \"staffPhone\": \"+8801811223344\",\n  \"staffDesignation\": \"Head of Emergency\",\n  \"staffEmployeeId\": \"DMCH-EMP-105\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hospitals/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals",
+                "create"
+              ]
+            },
+            "description": "Generated from cURL: curl --location --request POST '{{baseUrl}}/api/v1/hospitals/create' --header 'Authorization: Bearer {{admin_token}}' --header 'Content-Type: application/json' --data '{\n  \"name\": \"Dhaka Medical College Hospital\",\n  \"address\": \"Secretariat Road, Dhaka 1000\",\n  \"lat\": 23.7258,\n  \"lng\": 90.3976,\n  \"phone\": \"+880255165088\",\n  \"emergencyContact\": \"+8801711000000\",\n  \"capabilities\": [\"TRAUMA\", \"CARDIAC\", \"NEONATAL\", \"ICU\", \"BURN_UNIT\"],\n  \"totalErBeds\": 50,\n  \"availableErBeds\": 20,\n  \"staffName\": \"Dr. Kamal Hossain\",\n  \"staffEmail\": \"kamal.er@dmch.gov.bd\",\n  \"staffPhone\": \"+8801811223344\",\n  \"staffDesignation\": \"Head of Emergency\",\n  \"staffEmployeeId\": \"DMCH-EMP-105\"\n}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Hospitals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospitals?page=1&limit=10&diversionStatus=ACCEPTING&isActive=true&search=Dhaka",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "diversionStatus",
+                  "value": "ACCEPTING"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "search",
+                  "value": "Dhaka"
+                }
+              ]
+            },
+            "description": "Optional query params from pasted content: page, limit, diversionStatus, isActive, search."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Hospital Details",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+880299988877\",\n  \"availableErBeds\": 15,\n  \"capabilities\": [\"TRAUMA\", \"CARDIAC\", \"NEONATAL\", \"ICU\", \"BURN_UNIT\", \"NEUROLOGY\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hospitals/ea59edd6-22f8-44af-a5f6-954a1b64813e",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals",
+                "ea59edd6-22f8-44af-a5f6-954a1b64813e"
+              ]
+            },
+            "description": "Generated from cURL: curl --location --request PATCH '{{baseUrl}}/api/v1/hospitals/{{hospital_id}}' --header 'Authorization: Bearer {{admin_token}}' --header 'Content-Type: application/json' --data '{\n  \"phone\": \"+880299988877\",\n  \"availableErBeds\": 15,\n  \"capabilities\": [\"TRAUMA\", \"CARDIAC\", \"NEONATAL\", \"ICU\", \"BURN_UNIT\", \"NEUROLOGY\"]\n}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Diversion Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"diversionStatus\": \"DIVERTING\",\n  \"diversionReason\": \"ER Overcapacity - All ventilators in use\",\n  \"availableErBeds\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hospitals/ea59edd6-22f8-44af-a5f6-954a1b64813e/diversion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals",
+                "ea59edd6-22f8-44af-a5f6-954a1b64813e",
+                "diversion"
+              ]
+            },
+            "description": "Generated from cURL: curl --location --request PATCH '{{baseUrl}}/api/v1/hospitals/{{hospital_id}}/diversion' --header 'Authorization: Bearer {{admin_token}}' --header 'Content-Type: application/json' --data '{\n  \"diversionStatus\": \"DIVERTING\",\n  \"diversionReason\": \"ER Overcapacity - All ventilators in use\",\n  \"availableErBeds\": 0\n}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Hospital Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Rahim Uddin\",\n  \"email\": \"rahim.er@dmch.gov.bd\",\n  \"password\": \"StrongPassword123!\",\n  \"phone\": \"+8801711223343\",\n  \"designation\": \"Senior ER Physician\",\n  \"employeeId\": \"DMCH-EMP-205\",\n  \"canManageStaff\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hospitals/ea59edd6-22f8-44af-a5f6-954a1b64813e/staff/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals",
+                "ea59edd6-22f8-44af-a5f6-954a1b64813e",
+                "staff",
+                "create"
+              ]
+            },
+            "description": "Generated from cURL: curl --location --request POST '{{baseUrl}}/hospitals/{{hospital_id}}/staff' --header 'Authorization: Bearer {{admin_token}}' --header 'Content-Type: application/json' --data '{\n  \"name\": \"Dr. Rahim Uddin\",\n  \"email\": \"rahim.er@dmch.gov.bd\",\n  \"password\": \"StrongPassword123!\",\n  \"phone\": \"+8801711223344\",\n  \"designation\": \"Senior ER Physician\",\n  \"employeeId\": \"DMCH-EMP-205\",\n  \"canManageStaff\": false\n}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Hospital Staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospitals/ea59edd6-22f8-44af-a5f6-954a1b64813e/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals",
+                "ea59edd6-22f8-44af-a5f6-954a1b64813e",
+                "staff"
+              ]
+            },
+            "description": "Generated from cURL: curl --location --request GET '{{baseUrl}}/hospitals/{{hospital_id}}/staff?page=1&limit=10&canManageStaff=false&isOnShift=true&search=Rahim' --header 'Authorization: Bearer {{admin_token}}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Hospital Staff",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+8801999888777\",\n  \"designation\": \"Chief ER Physician\",\n  \"canManageStaff\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hospitals/ea59edd6-22f8-44af-a5f6-954a1b64813e/staff/3d423ca5-5cac-4d63-a43a-43548d7b1d47",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals",
+                "ea59edd6-22f8-44af-a5f6-954a1b64813e",
+                "staff",
+                "3d423ca5-5cac-4d63-a43a-43548d7b1d47"
+              ]
+            },
+            "description": "Generated from cURL: curl --location --request PATCH '{{baseUrl}}/hospitals/{{hospital_id}}/staff/{{staff_id}}' --header 'Authorization: Bearer {{admin_token}}' --header 'Content-Type: application/json' --data '{\n  \"phone\": \"+8801999888777\",\n  \"designation\": \"Chief ER Physician\",\n  \"canManageStaff\": true\n}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Hospital Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospitals/ea59edd6-22f8-44af-a5f6-954a1b64813e/staff/3d423ca5-5cac-4d63-a43a-43548d7b1d47",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals",
+                "ea59edd6-22f8-44af-a5f6-954a1b64813e",
+                "staff",
+                "3d423ca5-5cac-4d63-a43a-43548d7b1d47"
+              ]
+            },
+            "description": "Generated from cURL: curl --location --request DELETE '{{baseUrl}}/hospitals/{{hospital_id}}/staff/{{staff_id}}' --header 'Authorization: Bearer {{admin_token}}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Staff Shift",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"start\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hospitals/staff/me/shift",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hospitals",
+                "staff",
+                "me",
+                "shift"
+              ]
+            },
+            "description": "action can be either start or end"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dispatch",
+      "item": [
+        {
+          "name": "Recommend Ambulances",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"emergencyId\": \"68aef8b4-d652-456b-a658-0371b8bc1a2a\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dispatch/recommend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "recommend"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Dispatch",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"emergencyId\": \"68aef8b4-d652-456b-a658-0371b8bc1a2a\",\r\n    \"ambulanceId\": \"409658c9-4dec-463f-99ca-dda27cd05eae\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dispatch/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Dispatch (Driver)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dispatch/cce9cef3-4fb5-47a0-b3c9-c10da0fbe070/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "cce9cef3-4fb5-47a0-b3c9-c10da0fbe070",
+                "accept"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Dispatch (Driver)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"reason\": \"Traffic jam, cannot reach.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dispatch/cce9cef3-4fb5-47a0-b3c9-c10da0fbe070/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "cce9cef3-4fb5-47a0-b3c9-c10da0fbe070",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Dispatch",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"reason\": \"Patient arranged their own transport.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dispatch/cce9cef3-4fb5-47a0-b3c9-c10da0fbe070/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "cce9cef3-4fb5-47a0-b3c9-c10da0fbe070",
+                "reject"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trips",
+      "item": [
+        {
+          "name": "Get Trip By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/trips/645ca008-7971-45af-ab39-ef7f6018521f",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "trips",
+                "645ca008-7971-45af-ab39-ef7f6018521f"
+              ]
+            },
+            "description": "Get details of a single trip. Accessible by SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER, PATIENT."
+          },
+          "response": []
+        },
+        {
+          "name": "Select Hospital",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"hospitalId\": \"ea59edd6-22f8-44af-a5f6-954a1b64813e\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trips/645ca008-7971-45af-ab39-ef7f6018521f/hospital",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "trips",
+                "645ca008-7971-45af-ab39-ef7f6018521f",
+                "hospital"
+              ]
+            },
+            "description": "Select or update the destination hospital for a trip. Accessible by DRIVER, DISPATCHER, ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Trip (Generate Invoice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"distanceKm\": 12.5,\r\n    \"arrivedAtHospitalAt\": \"2026-09-08T15:00:00.000Z\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trips/645ca008-7971-45af-ab39-ef7f6018521f/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "trips",
+                "645ca008-7971-45af-ab39-ef7f6018521f",
+                "complete"
+              ]
+            },
+            "description": "Complete a trip and generate an invoice (DRIVER only). 'arrivedAtHospitalAt' is optional (ISO 8601 format). On success, response includes trip, payment, and invoicePdfBase64 (a base64-encoded PDF of the invoice). To download the PDF directly, add the header Accept: application/pdf."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Trip Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"CANCELLED\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/trips/645ca008-7971-45af-ab39-ef7f6018521f/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "trips",
+                "645ca008-7971-45af-ab39-ef7f6018521f",
+                "status"
+              ]
+            },
+            "description": "Update the status of a trip (DRIVER only). Only ACTIVE and CANCELLED are accepted values. Cannot set to COMPLETED — use the Complete Trip endpoint instead."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Initiate Payment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/b62e3ff0-f722-4eea-893f-f69ce89e841b/initiate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment",
+                "b62e3ff0-f722-4eea-893f-f69ce89e841b",
+                "initiate"
+              ]
+            },
+            "description": "Patient initiates online payment for a completed trip. Returns gatewayUrl to redirect the patient to SSLCommerz."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment/b62e3ff0-f722-4eea-893f-f69ce89e841b",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment",
+                "b62e3ff0-f722-4eea-893f-f69ce89e841b"
+              ]
+            },
+            "description": "Fetch a payment record by its ID. Only accessible by the patient who owns it, or admin/dispatcher."
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Callback (SSLCommerz Redirect)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "val_id",
+                  "value": "<val-id-from-sslcommerz>"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/callback?paymentId=b62e3ff0-f722-4eea-893f-f69ce89e841b&transactionId=LD-INV-MTSYCYHK-Y1QK-1788897413939&status=success",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment",
+                "callback"
+              ],
+              "query": [
+                {
+                  "key": "paymentId",
+                  "value": "b62e3ff0-f722-4eea-893f-f69ce89e841b"
+                },
+                {
+                  "key": "transactionId",
+                  "value": "LD-INV-MTSYCYHK-Y1QK-1788897413939"
+                },
+                {
+                  "key": "status",
+                  "value": "success"
+                }
+              ]
+            },
+            "description": "SSLCommerz redirects the patient's browser here after payment. Validates with SSLCommerz and updates payment status."
+          },
+          "response": []
+        },
+        {
+          "name": "IPN Listener",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "tran_id",
+                  "value": ""
+                },
+                {
+                  "key": "val_id",
+                  "value": ""
+                },
+                {
+                  "key": "status",
+                  "value": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/ipn",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment",
+                "ipn"
+              ]
+            },
+            "description": "SSLCommerz server-to-server background notification. Safety net in case browser callback fails."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\r\n//   \"status\": \"SUSPENDED\" \r\n// }\r\n{\r\n  \"status\": \"ACTIVE\" \r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/abe8a61b-13c4-4aae-b0bf-3eff59f60306/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "abe8a61b-13c4-4aae-b0bf-3eff59f60306",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Analytics Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/analytics/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "analytics",
+                "overview"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Emergency Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/analytics/emergencies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "analytics",
+                "emergencies"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/analytics/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "analytics",
+                "payments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "audit-logs"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    }
+  ]
+}

@@ -511,7 +511,29 @@ The schema is split across 14 Prisma model files for maintainability:
 
 ---
 
+## 🧪 API Testing (Postman)
+
+A ready-to-use Postman collection and environments are included in the [`postman/`](./postman/) folder.
+
+| File | Description |
+|---|---|
+| `LifeDispatch.postman_collection.json` | All 50 API endpoints, organized by module |
+| `LifeDispatch - Production.postman_environment.json` | `baseUrl` → `https://lifedispatch-backend.vercel.app/api/v1` |
+| `LifeDispatch-Local.postman_environment.json` | `baseUrl` → `http://localhost:5000/api/v1` |
+
+### Import Steps
+
+1. Open **Postman** → click **Import**
+2. Drag & drop all **3 files** from the `postman/` folder (or use "Choose Files" to select them)
+3. Click **Import**
+4. From the **Environment dropdown** (top-right), select:
+   - **LifeDispatch - Production** → to test the live Vercel deployment
+   - **Local** → to test your local development server
+
+---
+
 ## 🧪 Development Workflow
+
 
 ```bash
 # Check formatting
