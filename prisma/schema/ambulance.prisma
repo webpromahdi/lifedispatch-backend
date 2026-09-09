@@ -5,6 +5,9 @@ model Ambulance {
   status             AmbulanceStatus @default(AVAILABLE)
   capabilities       String[]
 
+  registrationDocumentUrl String @db.Text
+
+
   hospitalId String? @db.Uuid
 
   baseLocationLat Decimal  @db.Decimal(10, 7)

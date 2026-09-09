@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
 import { CertificationLevel } from "../../../generated/prisma/enums.js";
+import { AppError } from "../../utils/AppError.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
+import { uploadToCloudinary } from "../../utils/uploadToCloudinary.js";
 import { driverService } from "./driver.service.js";
 
 const validCertificationLevels = Object.values(CertificationLevel);
@@ -15,7 +17,18 @@ function isValidEnum<T extends string>(
 }
 
 const createDriver = catchAsync(async (req: Request, res: Response) => {
-	const payload = req.body;
+	if (!req.file) {
+		throw new AppError(httpStatus.BAD_REQUEST, "License document is required.");
+	}
+	const uploaded = await uploadToCloudinary(
+		req.file.buffer,
+		"lifedispatch/drivers",
+	);
+
+	const payload = {
+		...req.body,
+		licenseDocumentUrl: uploaded.secure_url,
+	};
 
 	const driver = await driverService.createDriverIntoDB(payload);
 

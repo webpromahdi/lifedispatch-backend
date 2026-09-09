@@ -7,6 +7,7 @@ export interface ICreateDriverPayload {
 	password: string;
 	licenseNumber: string;
 	licenseExpiry: string;
+	licenseDocumentUrl: string;
 	certificationLevel: CertificationLevel;
 	assignedAmbulanceId?: string;
 }

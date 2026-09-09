@@ -43,4 +43,7 @@ export default {
 	frontend_url: process.env.FRONTEND_URL ?? "http://localhost:3000",
 	ssl_commerz_store_id: process.env.SSL_COMMERZ_STORE_ID,
 	ssl_commerz_store_passwd: process.env.SSL_COMMERZ_STORE_PASSWORD,
+	cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+	cloudinary_api_key: process.env.CLOUDINARY_API_KEY!,
+	cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET!,
 };

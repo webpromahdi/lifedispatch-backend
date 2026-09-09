@@ -3,6 +3,8 @@ model Driver {
   userId             String             @unique @db.Uuid
   licenseNumber      String             @unique @db.VarChar(100)
   licenseExpiry      DateTime           @db.Date
+  licenseDocumentUrl String            @db.Text
+  certificationDocumentUrl String? @db.Text
   certificationLevel CertificationLevel
 
   isOnShift  Boolean   @default(false)

@@ -101,6 +101,7 @@ const createDriverIntoDB = async (payload: ICreateDriverPayload) => {
 				create: {
 					licenseNumber: payload.licenseNumber,
 					licenseExpiry: new Date(payload.licenseExpiry),
+					licenseDocumentUrl: payload.licenseDocumentUrl,
 					certificationLevel: payload.certificationLevel,
 					assignedAmbulanceId: payload.assignedAmbulanceId ?? null,
 				},

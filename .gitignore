@@ -9,9 +9,11 @@ node_modules
 # Project documentation
 blueprint.md
 FEATURES_AND_APIS.md
+PRD_LifeDispatch.md
 
 # Logs
 *.log
 logs/
 
 /generated/prisma
+
