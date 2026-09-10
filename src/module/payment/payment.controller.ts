@@ -19,7 +19,7 @@ const initiatePayment = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const handleCallback = catchAsync(async (req: Request, res: Response) => {
+const handleCallback = async (req: Request, res: Response) => {
 	const { paymentId, transactionId, status } = req.query as {
 		paymentId: string;
 		transactionId: string;
@@ -27,17 +27,27 @@ const handleCallback = catchAsync(async (req: Request, res: Response) => {
 	};
 	const body = req.body as Record<string, unknown>;
 
-	const result = await paymentService.handleCallback(
-		paymentId,
-		transactionId,
-		status,
-		body,
-	);
+	try {
+		const result = await paymentService.handleCallback(
+			paymentId,
+			transactionId,
+			status,
+			body,
+		);
 
-	res.redirect(
-		`${config.frontend_url}/payment/result?status=${result.result}&paymentId=${paymentId}`,
-	);
-});
+		// Always redirect to frontend — even on failure
+		// This prevents SSLCommerz from falling back to its store-registered URL
+		return res.redirect(
+			`${config.frontend_url}/payment/result?status=${result.result}&paymentId=${paymentId}`,
+		);
+	} catch (err) {
+		console.error("[Payment Callback] Error during callback handling:", err);
+		// On any unexpected error, still redirect to frontend with error status
+		return res.redirect(
+			`${config.frontend_url}/payment/result?status=error&paymentId=${paymentId ?? ""}`,
+		);
+	}
+};
 
 const handleIpn = catchAsync(async (req: Request, res: Response) => {
 	const body = req.body as Record<string, unknown>;
