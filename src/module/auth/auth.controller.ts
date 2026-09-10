@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import passport from "passport";
 import config from "../../config/index.js";
+import { AppError } from "../../utils/AppError.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import type { ILoginUser } from "./auth.interface.js";
@@ -68,7 +69,7 @@ const loginUser = catchAsync(
 						return next(err);
 					}
 					if (!user) {
-						return next(new Error(info?.message || "Invalid credentials!"));
+						return next(new AppError(httpStatus.UNAUTHORIZED, info?.message || "Invalid credentials!"));
 					}
 					const { accessToken, refreshToken } =
 						await authService.loginUser(user);
@@ -162,12 +163,12 @@ const googleLoginCallback = catchAsync(
 				try {
 					if (err) {
 						return next(
-							new Error(err?.message || "Google authentication Failed"),
+							new AppError(httpStatus.UNAUTHORIZED, err?.message || "Google authentication Failed"),
 						);
 					}
 					if (!user) {
 						return next(
-							new Error(info?.message || "Google authentication Failed"),
+							new AppError(httpStatus.UNAUTHORIZED, info?.message || "Google authentication Failed"),
 						);
 					}
 

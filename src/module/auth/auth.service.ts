@@ -110,7 +110,7 @@ const verifyUserEmail = async (payload: IVerifyEmailPayload) => {
 
 	await redisClient.del(otpKey);
 
-	const userRegistrationKey = `user-registration-data:${email}`;
+	const userRegistrationKey = `patient-registration-data:${email}`;
 	const redisUserData = await redisClient.get(userRegistrationKey);
 
 	if (!redisUserData) {
@@ -281,7 +281,7 @@ const forgotPassword = async (payload: IForgotPasswordPayload) => {
 		throw new AppError(httpStatus.BAD_REQUEST, "User Has Account With Google");
 	}
 
-	const otpKey = `forgor-password-otp:${isUserExist.email}`;
+	const otpKey = `forgot-password-otp:${isUserExist.email}`;
 	const otp = crypto.randomInt(100000, 1000000).toString();
 
 	const expirationSeconds = 5 * 60;
@@ -343,7 +343,7 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
 		throw new AppError(httpStatus.BAD_REQUEST, "User Has Account With Google");
 	}
 
-	const otpKey = `forgor-password-otp:${isUserExist.email}`;
+	const otpKey = `forgot-password-otp:${isUserExist.email}`;
 
 	const redisOtp = await redisClient.get(otpKey);
 
