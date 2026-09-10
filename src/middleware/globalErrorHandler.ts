@@ -10,9 +10,9 @@ export const globalErrorHandler = async (
 	res: Response,
 	_next: NextFunction,
 ) => {
-	if (config.node_env === "development") {
-		console.log("Error from Global Error Handler", err);
-	}
+	// Always log errors to the console so serverless platforms like Vercel can capture them in their logs
+	console.error("Error from Global Error Handler:", err);
+
 
 	let statusCode: number = httpStatus.INTERNAL_SERVER_ERROR;
 	let errorMessage = err.message || "Internal Server Error";
