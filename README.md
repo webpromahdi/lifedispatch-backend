@@ -612,22 +612,7 @@ Then open a Pull Request to `main` on GitHub. Include:
 - Any relevant issue numbers
 - Screenshots or `curl` examples if adding/changing API behavior
 
-### 5. Known Future Work
 
-The following items are planned — contributions are especially welcome here:
-
-| Priority | Item |
-|---|---|
-| 🔴 HIGH | Auto-expire `TIMED_OUT` dispatches via a background job |
-| 🔴 HIGH | Fix payment `GET` — bypass patient ownership check for `ADMIN` roles |
-| 🟡 MEDIUM | Wire `REASSIGNMENT_REQUIRED` status on driver rejection |
-| 🟡 MEDIUM | Sync `isDeleted + deletedAt` when user status set to `DELETED` |
-| 🟡 MEDIUM | Persist `dispatchScore` to the Dispatch record at creation time |
-| 🟢 LOW | Add free-text search to emergency listing |
-| 🟢 LOW | Implement waiting/additional charge calculation |
-| 🟢 LOW | Build refund endpoint (`refundAmount`, `refundReason`, `refundedAt`) |
-| 🟢 LOW | Add Dispatcher profile management module |
-| 🟢 LOW | Populate `ipAddress` in AuditLog from `req.ip` |
 
 ---
 
