@@ -41,6 +41,8 @@
 - Google OAuth 2.0 via Passport.js
 - Forgot / reset password flow with email tokens
 - **6-role RBAC:** `SUPER_ADMIN`, `ADMIN`, `PATIENT`, `DISPATCHER`, `DRIVER`, `HOSPITAL_STAFF`
+- Session management (single device logout, logout all devices)
+- Admin-provisioned onboarding & temporary passwords
 
 </details>
 
@@ -59,6 +61,7 @@
 
 - Capability-typed fleet: `ALS`, `BLS`, `NEONATAL`, `BARIATRIC`, `PATIENT_TRANSPORT`
 - Cloudinary-backed document uploads (registration docs, driver licenses)
+- Service and license expiration tracking
 - Soft-delete with `deletedAt` timestamp
 - Optimistic locking with `version` integer field
 
@@ -83,7 +86,7 @@ Returns top 5 candidates with full `scoreBreakdown`. 2-minute acceptance timeout
 <summary><strong>🏥 Trip & Hospital Management</strong></summary>
 
 - 7 milestone timestamps per trip (`departedAt`, `arrivedAtSceneAt`, `patientPickedUpAt`, etc.)
-- Hospital diversion status routing
+- Hospital diversion status routing & real-time ER bed capacity tracking
 - Fare formula: `500 BDT base + 35 BDT/km × distanceKm`
 - PDF invoice generated in-memory via PDFKit on trip completion
 
@@ -361,13 +364,13 @@ npm start
 ## 📡 API Reference
 
 > 📄 **The full API reference is maintained in a dedicated file:**
-> **[`API_REFERENCE.md`](./API_REFERENCE.md)**
+> **[`api-documentation.md`](./api-documentation.md)**
 
-The backend exposes **50 REST endpoints** across **9 modules:**
+The backend exposes **51 REST endpoints** across **9 modules:**
 
 | Module | Endpoints | Key Operations |
 |---|---|---|
-| **Auth** | 8 | Register, Login, Refresh Token, Google OAuth, Password Reset |
+| **Auth** | 9 | Register, Login, Refresh Token, Google OAuth, Password Reset, **Get Profile** |
 | **Emergencies** | 5 | Create, List, Get, Set Priority, Cancel |
 | **Ambulances** | 5 | Create, List, Get, Update, Update Status |
 | **Drivers** | 4 | Create, List, Shift Toggle, Update |
@@ -377,11 +380,40 @@ The backend exposes **50 REST endpoints** across **9 modules:**
 | **Payment** | 4 | Initiate, Get, Gateway Callback, IPN |
 | **Admin** | 6 | User Management, Analytics (3), Audit Log |
 
-→ **[View all endpoints, request/response examples, and business rules](./API_REFERENCE.md)**
+→ **[View all endpoints, request/response examples, and business rules](./api-documentation.md)**
 
 
 
 ## 💡 Usage Examples
+
+### Get My Profile
+
+```bash
+curl http://localhost:5000/api/v1/auth/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "User profile fetched successfully",
+  "data": {
+    "user": {
+      "id": "cm8vt3k2p0000ld08g4x7z9qr",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "role": "PATIENT",
+      "status": "ACTIVE",
+      "isVerified": true,
+      "phone": null,
+      "createdAt": "2026-09-09T10:00:00.000Z"
+    }
+  }
+}
+```
 
 ### Register a Patient
 

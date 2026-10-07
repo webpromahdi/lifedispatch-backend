@@ -1,11 +1,15 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import ejs from "ejs";
 import httpStatus from "http-status";
+import path from "path";
 import type { Prisma } from "../../../generated/prisma/browser.js";
 import {
 	HospitalDiversionStatus,
 	UserRole,
 } from "../../../generated/prisma/enums.js";
 import config from "../../config/index.js";
+import { transporter } from "../../lib/nodemailer.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import type {
@@ -71,8 +75,10 @@ const createHospitalIntoDB = async (payload: ICreateHospitalPayload) => {
 		);
 	}
 
+	// Auto-generate a secure temporary password — admin does NOT set this.
+	const temporaryPassword = crypto.randomBytes(16).toString("base64url");
 	const hashedPassword = await bcrypt.hash(
-		payload.staffPassword,
+		temporaryPassword,
 		Number(config.bcrypt_salt_rounds),
 	);
 
@@ -84,7 +90,8 @@ const createHospitalIntoDB = async (payload: ICreateHospitalPayload) => {
 				phone: payload.staffPhone ?? null,
 				password: hashedPassword,
 				role: UserRole.HOSPITAL_STAFF,
-				isVerified: true,
+				isVerified: false,
+				mustChangePassword: true,
 			},
 			omit: { password: true },
 		});
@@ -116,6 +123,25 @@ const createHospitalIntoDB = async (payload: ICreateHospitalPayload) => {
 		return { hospital, staffUser, hospitalStaff };
 	});
 
+	// Send temporary credentials email to the hospital staff member.
+	const templatePath = path.join(
+		process.cwd(),
+		"src/templates/temp-credentials.ejs",
+	);
+
+	const html = await ejs.renderFile(templatePath, {
+		name: payload.staffName,
+		email: payload.staffEmail,
+		temporaryPassword,
+	});
+
+	await transporter.sendMail({
+		from: config.email_sender,
+		to: payload.staffEmail,
+		subject: "Your LifeDispatch Account is Ready — Action Required",
+		html,
+	});
+
 	return {
 		hospital: result.hospital,
 		firstStaff: {
@@ -125,12 +151,40 @@ const createHospitalIntoDB = async (payload: ICreateHospitalPayload) => {
 	};
 };
 
+const getHospitalByIdFromDB = async (hospitalId: string) => {
+	const hospital = await prisma.hospital.findUnique({
+		where: { id: hospitalId },
+		include: {
+			_count: {
+				select: { staff: true, trips: true },
+			},
+		},
+	});
+
+	if (!hospital) {
+		throw new AppError(httpStatus.NOT_FOUND, "Hospital not found.");
+	}
+
+	// Compute occupancy percentage for consumers
+	const occupancyPercent =
+		hospital.totalErBeds > 0
+			? Math.round(
+					((hospital.totalErBeds - Number(hospital.availableErBeds)) /
+						hospital.totalErBeds) *
+						100,
+				)
+			: null;
+
+	return { ...hospital, occupancyPercent };
+};
+
 const getAllHospitalsFromDB = async (
 	page: number,
 	limit: number,
 	filters: {
 		diversionStatus?: HospitalDiversionStatus;
 		isActive?: boolean;
+		hasCapacity?: boolean;
 		search?: string;
 	},
 ) => {
@@ -143,6 +197,11 @@ const getAllHospitalsFromDB = async (
 
 	if (filters.isActive !== undefined) {
 		whereConditions.isActive = filters.isActive;
+	}
+
+	// Filter to only hospitals with at least 1 available ER bed
+	if (filters.hasCapacity === true) {
+		whereConditions.availableErBeds = { gt: 0 };
 	}
 
 	if (filters.search) {
@@ -318,8 +377,10 @@ const createStaffIntoDB = async (
 		}
 	}
 
+	// Auto-generate a secure temporary password — admin does NOT set this.
+	const temporaryPassword = crypto.randomBytes(16).toString("base64url");
 	const hashedPassword = await bcrypt.hash(
-		payload.password,
+		temporaryPassword,
 		Number(config.bcrypt_salt_rounds),
 	);
 
@@ -331,7 +392,8 @@ const createStaffIntoDB = async (
 				phone: payload.phone ?? null,
 				password: hashedPassword,
 				role: UserRole.HOSPITAL_STAFF,
-				isVerified: true,
+				isVerified: false,
+				mustChangePassword: true,
 			},
 			omit: { password: true },
 		});
@@ -347,6 +409,25 @@ const createStaffIntoDB = async (
 		});
 
 		return { ...newUser, staffProfile: staffRecord };
+	});
+
+	// Send temporary credentials email to the new staff member.
+	const templatePath = path.join(
+		process.cwd(),
+		"src/templates/temp-credentials.ejs",
+	);
+
+	const html = await ejs.renderFile(templatePath, {
+		name: payload.name,
+		email: payload.email,
+		temporaryPassword,
+	});
+
+	await transporter.sendMail({
+		from: config.email_sender,
+		to: payload.email,
+		subject: "Your LifeDispatch Account is Ready — Action Required",
+		html,
 	});
 
 	return result;
@@ -552,6 +633,7 @@ const toggleShiftInDB = async (userId: string, action: "start" | "end") => {
 
 export const hospitalService = {
 	createHospitalIntoDB,
+	getHospitalByIdFromDB,
 	getAllHospitalsFromDB,
 	updateHospitalInDB,
 	updateDiversionInDB,

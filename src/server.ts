@@ -1,5 +1,6 @@
 import app from "./app.js";
 import config from "./config/index.js";
+import { startDispatchTimeoutJob } from "./lib/dispatchTimeoutJob.js";
 import { transporter } from "./lib/nodemailer.js";
 import { prisma } from "./lib/prisma.js";
 import { redisClient } from "./lib/redis.js";
@@ -29,6 +30,18 @@ async function main() {
 		await seedTesterDispatcher();
 		await seedTesterHospitalStaff();
 
+		// Start background jobs
+		const dispatchTimeoutJobHandle = startDispatchTimeoutJob();
+
+		// Graceful shutdown — clear intervals before process exits
+		const shutdown = async () => {
+			clearInterval(dispatchTimeoutJobHandle);
+			await prisma.$disconnect();
+			process.exit(0);
+		};
+		process.on("SIGTERM", shutdown);
+		process.on("SIGINT", shutdown);
+
 		app.listen(config.port, () => {
 			console.log(`Example app listening on port ${config.port}`);
 		});
@@ -40,3 +53,4 @@ async function main() {
 }
 
 main();
+

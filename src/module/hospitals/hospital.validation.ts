@@ -56,11 +56,6 @@ export const createHospitalSchema = z.object({
 		.min(1, "Staff email is required.")
 		.email("Staff email must be a valid email address."),
 
-	staffPassword: z
-		.string()
-		.min(8, "Staff password must be at least 8 characters.")
-		.max(100, "Staff password must not exceed 100 characters."),
-
 	staffPhone: z
 		.string()
 		.min(1, "Staff phone must not be empty.")
@@ -167,11 +162,6 @@ export const createStaffSchema = z.object({
 		.string()
 		.min(1, "Email is required.")
 		.email("Email must be a valid email address."),
-
-	password: z
-		.string()
-		.min(8, "Password must be at least 8 characters.")
-		.max(100, "Password must not exceed 100 characters."),
 
 	phone: z
 		.string()

@@ -76,6 +76,7 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
 	const { id } = req.params;
 	const { status } = req.body as { status: UserStatus };
+	const ipAddress = (req.ip ?? req.socket?.remoteAddress ?? "unknown") as string;
 	const adminDetails = {
 		id: req.user!.userId,
 		role: req.user!.role,
@@ -86,6 +87,7 @@ const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
 		id as string,
 		status,
 		adminDetails,
+		ipAddress,
 	);
 
 	sendResponse(res, {

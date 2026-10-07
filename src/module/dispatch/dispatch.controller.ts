@@ -23,19 +23,25 @@ const recommendAmbulances = catchAsync(async (req: Request, res: Response) => {
 const createDispatch = catchAsync(async (req: Request, res: Response) => {
 	const dispatcherId = req.user!.userId as string;
 	const dispatcherRole = req.user!.role as string;
+	const ipAddress = (req.ip ?? req.socket?.remoteAddress ?? "unknown") as string;
 	const payload = req.body;
 
-	const dispatch = await dispatchService.createDispatch(
+	const { dispatch, serviceOverdueWarning } = await dispatchService.createDispatch(
 		payload,
 		dispatcherId,
 		dispatcherRole,
+		ipAddress,
 	);
+
+	const message = serviceOverdueWarning
+		? "Ambulance dispatched successfully. WARNING: This ambulance is overdue for service maintenance."
+		: "Ambulance dispatched successfully. Awaiting driver acceptance.";
 
 	sendResponse(res, {
 		success: true,
 		statusCode: httpStatus.CREATED,
-		message: "Ambulance dispatched successfully. Awaiting driver acceptance.",
-		data: dispatch,
+		message,
+		data: { ...dispatch, serviceOverdueWarning },
 	});
 });
 
@@ -76,6 +82,7 @@ const cancelDispatch = catchAsync(async (req: Request, res: Response) => {
 	const dispatchId = req.params.id as string;
 	const userId = req.user!.userId as string;
 	const userRole = req.user!.role as string;
+	const ipAddress = (req.ip ?? req.socket?.remoteAddress ?? "unknown") as string;
 	const payload = req.body;
 
 	const result = await dispatchService.cancelDispatch(
@@ -83,6 +90,7 @@ const cancelDispatch = catchAsync(async (req: Request, res: Response) => {
 		userId,
 		userRole,
 		payload,
+		ipAddress,
 	);
 
 	sendResponse(res, {
@@ -93,10 +101,61 @@ const cancelDispatch = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+/**
+ * Feature #2 — GET /api/v1/dispatch/me
+ * Returns all PENDING_ACCEPTANCE dispatches assigned to the authenticated
+ * driver. Designed for polling — returns only what's needed for the
+ * accept/reject decision, plus timeoutAt for a countdown timer.
+ */
+const getMyPendingDispatches = catchAsync(
+	async (req: Request, res: Response) => {
+		const userId = req.user!.userId as string;
+
+		const dispatches =
+			await dispatchService.getMyPendingDispatches(userId);
+
+		sendResponse(res, {
+			success: true,
+			statusCode: httpStatus.OK,
+			message:
+				dispatches.length > 0
+					? `${dispatches.length} pending dispatch(es) found.`
+					: "No pending dispatches at this time.",
+			data: dispatches,
+		});
+	},
+);
+
+/**
+ * Feature #2 — GET /api/v1/dispatch/:id
+ * Fetches a single dispatch by ID. DRIVER role is restricted to their
+ * own dispatches. SUPER_ADMIN, ADMIN, and DISPATCHER can fetch any.
+ */
+const getDispatchById = catchAsync(async (req: Request, res: Response) => {
+	const dispatchId = req.params.id as string;
+	const userId = req.user!.userId as string;
+	const userRole = req.user!.role as string;
+
+	const dispatch = await dispatchService.getDispatchById(
+		dispatchId,
+		userId,
+		userRole,
+	);
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "Dispatch retrieved successfully.",
+		data: dispatch,
+	});
+});
+
 export const dispatchController = {
 	recommendAmbulances,
 	createDispatch,
 	acceptDispatch,
 	rejectDispatch,
 	cancelDispatch,
+	getMyPendingDispatches,
+	getDispatchById,
 };

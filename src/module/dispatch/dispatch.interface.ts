@@ -5,6 +5,7 @@ export interface IRecommendPayload {
 export interface ICreateDispatchPayload {
 	emergencyId: string;
 	ambulanceId: string;
+	dispatchScore?: number;
 }
 
 export interface IRejectDispatchPayload {
@@ -30,4 +31,7 @@ export interface IAmbulanceCandidate {
 		priorityScore: number;
 		typeScore: number;
 	};
+	/** Feature 4: true when the ambulance's nextServiceDue has passed.
+	 *  Dispatch is still allowed but the dispatcher is warned. */
+	serviceOverdue?: boolean;
 }

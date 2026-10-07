@@ -34,7 +34,7 @@ const verifyUserEmail = catchAsync(async (req: Request, res: Response) => {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
 		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
+		maxAge: 1000 * 60 * 60 * 24, // 24 hours
 	});
 	res.cookie("refreshToken", refreshToken, {
 		httpOnly: true,
@@ -129,15 +129,31 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 
 const refreshToken = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const refreshToken = req.cookies.refreshToken;
+		const token = req.cookies.refreshToken;
 
-		const { accessToken } = await authService.refreshToken(refreshToken);
+		if (!token) {
+			throw new AppError(
+				httpStatus.UNAUTHORIZED,
+				"No refresh token provided. Please log in again.",
+			);
+		}
+
+		const { accessToken, refreshToken: newRefreshToken } =
+			await authService.refreshToken(token);
 
 		res.cookie("accessToken", accessToken, {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
 			sameSite: "none",
 			maxAge: 1000 * 60 * 60 * 24,
+		});
+
+		// Feature 5: rotate refresh token cookie as well
+		res.cookie("refreshToken", newRefreshToken, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "none",
+			maxAge: 1000 * 60 * 60 * 24 * 7,
 		});
 
 		sendResponse(res, {
@@ -186,6 +202,79 @@ const googleLoginCallback = catchAsync(
 	},
 );
 
+const changePassword = catchAsync(async (req: Request, res: Response) => {
+	const userId = req.user!.userId;
+	const payload = req.body;
+
+	await authService.changeTempPassword(userId, payload);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Password changed successfully. Your account is now fully active.",
+		data: null,
+	});
+});
+
+/**
+ * Feature 5: Logout — revoke the current refresh token and clear auth cookies.
+ */
+const logout = catchAsync(async (req: Request, res: Response) => {
+	const userId = req.user!.userId;
+	const token = req.cookies.refreshToken as string | undefined;
+
+	if (token) {
+		await authService.logoutUser(userId, token);
+	}
+
+	res.clearCookie("accessToken", { httpOnly: true, sameSite: "none", secure: process.env.NODE_ENV === "production" });
+	res.clearCookie("refreshToken", { httpOnly: true, sameSite: "none", secure: process.env.NODE_ENV === "production" });
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Logged out successfully.",
+		data: null,
+	});
+});
+
+/**
+ * Feature 5: Logout everywhere — revoke ALL refresh tokens for this user.
+ * Useful after a password reset or suspected account compromise.
+ */
+const logoutAll = catchAsync(async (req: Request, res: Response) => {
+	const userId = req.user!.userId;
+
+	await authService.logoutAll(userId);
+
+	res.clearCookie("accessToken", { httpOnly: true, sameSite: "none", secure: process.env.NODE_ENV === "production" });
+	res.clearCookie("refreshToken", { httpOnly: true, sameSite: "none", secure: process.env.NODE_ENV === "production" });
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Logged out from all devices successfully.",
+		data: null,
+	});
+});
+
+/**
+ * GET /api/v1/auth/me
+ * Returns the authenticated user's full profile.
+ */
+const getMe = catchAsync(async (req: Request, res: Response) => {
+	const userId = req.user!.userId;
+
+	const user = await authService.getMe(userId);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "User profile fetched successfully",
+		data: { user },
+	});
+});
+
 export const authController = {
 	register,
 	verifyUserEmail,
@@ -194,4 +283,8 @@ export const authController = {
 	resetPassword,
 	refreshToken,
 	googleLoginCallback,
+	changePassword,
+	logout,
+	logoutAll,
+	getMe,
 };

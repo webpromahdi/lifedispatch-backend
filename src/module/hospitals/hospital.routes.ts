@@ -39,6 +39,17 @@ router.patch(
 	hospitalController.toggleShift,
 );
 
+router.get(
+	"/:id",
+	auth(
+		UserRole.SUPER_ADMIN,
+		UserRole.ADMIN,
+		UserRole.DISPATCHER,
+		UserRole.DRIVER,
+	),
+	hospitalController.getHospitalById,
+);
+
 router.patch(
 	"/:id",
 	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),

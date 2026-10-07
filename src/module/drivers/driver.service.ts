@@ -1,11 +1,15 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import ejs from "ejs";
 import httpStatus from "http-status";
+import path from "path";
 import type {
 	CertificationLevel,
 	Prisma,
 } from "../../../generated/prisma/browser.js";
 import { UserRole } from "../../../generated/prisma/enums.js";
 import config from "../../config/index.js";
+import { transporter } from "../../lib/nodemailer.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import type {
@@ -84,8 +88,10 @@ const createDriverIntoDB = async (payload: ICreateDriverPayload) => {
 		}
 	}
 
+	// Auto-generate a secure temporary password — admin does NOT set this.
+	const temporaryPassword = crypto.randomBytes(16).toString("base64url");
 	const hashedPassword = await bcrypt.hash(
-		payload.password,
+		temporaryPassword,
 		Number(config.bcrypt_salt_rounds),
 	);
 
@@ -96,7 +102,8 @@ const createDriverIntoDB = async (payload: ICreateDriverPayload) => {
 			phone: payload.phone ?? null,
 			password: hashedPassword,
 			role: UserRole.DRIVER,
-			isVerified: true,
+			isVerified: false,
+			mustChangePassword: true,
 			driverProfile: {
 				create: {
 					licenseNumber: payload.licenseNumber,
@@ -113,6 +120,25 @@ const createDriverIntoDB = async (payload: ICreateDriverPayload) => {
 				include: { ambulance: true },
 			},
 		},
+	});
+
+	// Send temporary credentials email to the driver.
+	const templatePath = path.join(
+		process.cwd(),
+		"src/templates/temp-credentials.ejs",
+	);
+
+	const html = await ejs.renderFile(templatePath, {
+		name: payload.name,
+		email: payload.email,
+		temporaryPassword,
+	});
+
+	await transporter.sendMail({
+		from: config.email_sender,
+		to: payload.email,
+		subject: "Your LifeDispatch Account is Ready — Action Required",
+		html,
 	});
 
 	return user;

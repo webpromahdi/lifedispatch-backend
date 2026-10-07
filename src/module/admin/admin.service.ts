@@ -72,6 +72,7 @@ const updateUserStatusInDB = async (
 	userId: string,
 	status: UserStatus,
 	admin: { id: string; role: string; name: string },
+	ipAddress: string,
 ) => {
 	const user = await prisma.user.findUnique({
 		where: { id: userId, isDeleted: false },
@@ -91,7 +92,11 @@ const updateUserStatusInDB = async (
 	const updated = await prisma.$transaction(async (tx) => {
 		const updatedUser = await tx.user.update({
 			where: { id: userId },
-			data: { status },
+			data: {
+				status,
+				isDeleted: status === "DELETED",
+				deletedAt: status === "DELETED" ? new Date() : null,
+			},
 			omit: { password: true },
 		});
 
@@ -104,6 +109,7 @@ const updateUserStatusInDB = async (
 				performedBy: admin.id,
 				performedByRole: admin.role,
 				performedByName: admin.name,
+				ipAddress,
 				oldData: { status: user.status },
 				newData: { status: status },
 			},

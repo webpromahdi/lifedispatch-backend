@@ -9,9 +9,10 @@ model User {
   googleId     String?      @unique
   authProvider AuthProvider @default(CREDENTIAL)
 
-  status     UserStatus @default(ACTIVE)
-  isVerified Boolean    @default(false)
-  isDeleted  Boolean    @default(false)
+  status              UserStatus @default(ACTIVE)
+  isVerified          Boolean    @default(false)
+  isDeleted           Boolean    @default(false)
+  mustChangePassword  Boolean    @default(false)
 
   emergencyContactName  String?    @db.VarChar(255)
   emergencyContactPhone String?    @db.VarChar(20)

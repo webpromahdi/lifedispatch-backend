@@ -38,6 +38,19 @@ const createHospital = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getHospitalById = catchAsync(async (req: Request, res: Response) => {
+	const hospitalId = req.params.id as string;
+
+	const result = await hospitalService.getHospitalByIdFromDB(hospitalId);
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "Hospital retrieved successfully.",
+		data: result,
+	});
+});
+
 const getAllHospitals = catchAsync(async (req: Request, res: Response) => {
 	const page = Math.max(1, Number(req.query.page) || 1);
 	const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
@@ -45,6 +58,7 @@ const getAllHospitals = catchAsync(async (req: Request, res: Response) => {
 	const filters: {
 		diversionStatus?: HospitalDiversionStatus;
 		isActive?: boolean;
+		hasCapacity?: boolean;
 		search?: string;
 	} = {};
 
@@ -64,6 +78,16 @@ const getAllHospitals = catchAsync(async (req: Request, res: Response) => {
 	if (typeof req.query.isActive === "string" && req.query.isActive !== "") {
 		if (req.query.isActive === "true") filters.isActive = true;
 		else if (req.query.isActive === "false") filters.isActive = false;
+		else hasInvalidFilter = true;
+	}
+
+	// hasCapacity=true → only hospitals with availableErBeds > 0
+	if (
+		typeof req.query.hasCapacity === "string" &&
+		req.query.hasCapacity !== ""
+	) {
+		if (req.query.hasCapacity === "true") filters.hasCapacity = true;
+		else if (req.query.hasCapacity === "false") filters.hasCapacity = false;
 		else hasInvalidFilter = true;
 	}
 
@@ -346,6 +370,7 @@ const toggleShift = catchAsync(async (req: Request, res: Response) => {
 
 export const hospitalController = {
 	createHospital,
+	getHospitalById,
 	getAllHospitals,
 	updateHospital,
 	updateDiversion,

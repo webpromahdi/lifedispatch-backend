@@ -92,6 +92,7 @@ const getAllEmergenciesFromDB = async (
 		status?: EmergencyStatus;
 		emergencyType?: EmergencyType;
 		priority?: EmergencyPriority;
+		search?: string;
 	},
 ) => {
 	const skip = (page - 1) * limit;
@@ -105,6 +106,15 @@ const getAllEmergenciesFromDB = async (
 	if (filters.emergencyType)
 		whereConditions.emergencyType = filters.emergencyType;
 	if (filters.priority) whereConditions.priority = filters.priority;
+
+	if (filters.search) {
+		whereConditions.OR = [
+			{ callerName: { contains: filters.search, mode: "insensitive" } },
+			{ callerPhone: { contains: filters.search, mode: "insensitive" } },
+			{ description: { contains: filters.search, mode: "insensitive" } },
+			{ incidentNumber: { contains: filters.search, mode: "insensitive" } },
+		];
+	}
 
 	const [emergencies, total] = await Promise.all([
 		prisma.emergencyRequest.findMany({
@@ -188,6 +198,7 @@ const updatePriority = async (
 	priority: EmergencyPriority,
 	dispatcherId: string,
 	dispatcherRole: UserRole,
+	ipAddress: string,
 ) => {
 	const emergency = await prisma.emergencyRequest.findUnique({
 		where: { id: emergencyId },
@@ -247,6 +258,26 @@ const updatePriority = async (
 				},
 			});
 		}
+
+		// Feature 3 — Audit log: UPDATE_PRIORITY
+		const dispatcherUser = await tx.user.findUnique({
+			where: { id: dispatcherId },
+			select: { name: true },
+		});
+		await tx.auditLog.create({
+			data: {
+				action: "UPDATE_PRIORITY",
+				entity: "EMERGENCY",
+				entityId: emergencyId,
+				description: `Emergency priority changed from ${emergency.priority ?? "UNASSIGNED"} to ${priority}.`,
+				performedBy: dispatcherId,
+				performedByRole: dispatcherRole,
+				performedByName: dispatcherUser?.name ?? "Unknown",
+				ipAddress,
+				oldData: { priority: emergency.priority, status: emergency.status },
+				newData: { priority, status: newStatus },
+			},
+		});
 
 		return updated;
 	});

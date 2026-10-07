@@ -59,8 +59,9 @@ const handleIpn = catchAsync(async (req: Request, res: Response) => {
 const getPaymentById = catchAsync(async (req: Request, res: Response) => {
 	const paymentId = req.params.paymentId as string;
 	const userId = req.user!.userId as string;
+	const userRole = req.user!.role;
 
-	const payment = await paymentService.getPaymentById(paymentId, userId);
+	const payment = await paymentService.getPaymentById(paymentId, userId, userRole);
 
 	sendResponse(res, {
 		success: true,

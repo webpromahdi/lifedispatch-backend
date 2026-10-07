@@ -15,7 +15,6 @@ export interface ICreateHospitalPayload {
 	staffName: string;
 	staffEmail: string;
 	staffPhone?: string;
-	staffPassword: string;
 	staffDesignation?: string;
 	staffEmployeeId?: string;
 }
@@ -41,7 +40,6 @@ export interface IUpdateDiversionPayload {
 export interface ICreateStaffPayload {
 	name: string;
 	email: string;
-	password: string;
 	phone?: string;
 	designation?: string;
 	employeeId?: string;

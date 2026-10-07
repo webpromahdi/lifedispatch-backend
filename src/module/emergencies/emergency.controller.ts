@@ -48,7 +48,12 @@ const getAllEmergencies = catchAsync(async (req: Request, res: Response) => {
 		status?: EmergencyStatus;
 		emergencyType?: EmergencyType;
 		priority?: EmergencyPriority;
+		search?: string;
 	} = {};
+
+	if (typeof req.query.search === "string" && req.query.search.trim() !== "") {
+		filters.search = req.query.search.trim();
+	}
 
 	let hasInvalidFilter = false;
 
@@ -131,12 +136,14 @@ const updatePriority = catchAsync(async (req: Request, res: Response) => {
 	const { priority } = req.body;
 	const dispatcherId = req.user!.userId;
 	const dispatcherRole = req.user!.role;
+	const ipAddress = (req.ip ?? req.socket?.remoteAddress ?? "unknown") as string;
 
 	const emergency = await emergencyService.updatePriority(
 		id as string,
 		priority,
 		dispatcherId,
 		dispatcherRole,
+		ipAddress,
 	);
 
 	sendResponse(res, {

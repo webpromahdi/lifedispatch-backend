@@ -18,8 +18,3 @@ redisClient.on("error", (err: Error) => {
 redisClient.on("reconnecting", () => {
 	console.warn("[Redis] Reconnecting...");
 });
-
-// Automatically connect in serverless environments
-redisClient.connect().catch((err) => {
-	console.error("[Redis] Failed to connect on startup:", err);
-});

@@ -4,7 +4,6 @@ export interface ICreateDriverPayload {
 	name: string;
 	email: string;
 	phone?: string;
-	password: string;
 	licenseNumber: string;
 	licenseExpiry: string;
 	licenseDocumentUrl: string;

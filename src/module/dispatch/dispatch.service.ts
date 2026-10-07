@@ -140,12 +140,17 @@ const recommendAmbulances = async (
 		},
 	});
 
+	const now = new Date();
+
 	const emergencyLat = Number(emergency.locationLat);
 	const emergencyLng = Number(emergency.locationLng);
 	const requiredCapability = emergency.requiredCapability;
 
 	const eligible = availableAmbulances.filter((amb) => {
 		if (!amb.driver) return false;
+
+		// Feature 4 — hard block: exclude drivers with an expired license.
+		if (amb.driver.licenseExpiry < now) return false;
 
 		const requiredCapabilityStr = String(requiredCapability);
 
@@ -185,6 +190,10 @@ const recommendAmbulances = async (
 				weights.priority * priorityScore +
 				weights.type * typeScore;
 
+			// Feature 4 — soft warning: flag ambulances with an overdue service date.
+			const serviceOverdue =
+				amb.nextServiceDue != null && amb.nextServiceDue < now;
+
 			return {
 				ambulanceId: amb.id,
 				registrationNumber: amb.registrationNumber,
@@ -200,6 +209,7 @@ const recommendAmbulances = async (
 					priorityScore,
 					typeScore,
 				},
+				...(serviceOverdue && { serviceOverdue: true }),
 			};
 		},
 	);
@@ -211,8 +221,9 @@ const createDispatch = async (
 	payload: ICreateDispatchPayload,
 	dispatcherId: string,
 	dispatcherRole: string,
+	ipAddress: string,
 ) => {
-	const { emergencyId, ambulanceId } = payload;
+	const { emergencyId, ambulanceId, dispatchScore } = payload;
 
 	const emergency = await prisma.emergencyRequest.findUnique({
 		where: { id: emergencyId },
@@ -263,6 +274,19 @@ const createDispatch = async (
 		);
 	}
 
+	// Feature 4 — hard block: expired driver license.
+	const now = new Date();
+	if (ambulance.driver.licenseExpiry < now) {
+		throw new AppError(
+			httpStatus.UNPROCESSABLE_ENTITY,
+			`Driver's license expired on ${ambulance.driver.licenseExpiry.toISOString().slice(0, 10)}. This unit cannot be dispatched until the license is renewed.`,
+		);
+	}
+
+	// Feature 4 — soft warning: ambulance service date overdue.
+	const serviceOverdueWarning =
+		ambulance.nextServiceDue != null && ambulance.nextServiceDue < now;
+
 	const requiredCapability = String(emergency.requiredCapability);
 	const idealTypes = capabilityTypeMap[requiredCapability] ?? [];
 	const overqualifiedTypes = ["ADVANCED_LIFE_SUPPORT"];
@@ -281,6 +305,12 @@ const createDispatch = async (
 	const timeoutAt = new Date(Date.now() + dispatchTimeoutMinutes * 60 * 1000);
 
 	const driverId = ambulance.driver?.id as string;
+
+	// Look up dispatcher's name for the audit log.
+	const dispatcherUser = await prisma.user.findUnique({
+		where: { id: dispatcherId },
+		select: { name: true },
+	});
 
 	const result = await prisma.$transaction(async (tx) => {
 		// update ONLY if status is still AVAILABLE and version matches
@@ -313,6 +343,7 @@ const createDispatch = async (
 				dispatchedBy: dispatcherId,
 				status: DispatchStatus.PENDING_ACCEPTANCE,
 				timeoutAt,
+				dispatchScore,
 			},
 			include: {
 				ambulance: true,
@@ -352,7 +383,28 @@ const createDispatch = async (
 			},
 		});
 
-		return dispatch;
+		// Feature 3 — Audit log: CREATE_DISPATCH
+		await tx.auditLog.create({
+			data: {
+				action: "CREATE_DISPATCH",
+				entity: "DISPATCH",
+				entityId: dispatch.id,
+				description: `Dispatch created for emergency ${emergency.incidentNumber}. Ambulance ${ambulance.registrationNumber} assigned to driver ${driverId}.`,
+				performedBy: dispatcherId,
+				performedByRole: dispatcherRole,
+				performedByName: dispatcherUser?.name ?? "Unknown",
+				ipAddress,
+				oldData: { emergencyStatus: emergency.status },
+				newData: {
+					dispatchId: dispatch.id,
+					ambulanceId,
+					driverId,
+					timeoutAt: timeoutAt.toISOString(),
+				},
+			},
+		});
+
+		return { dispatch, serviceOverdueWarning };
 	});
 
 	return result;
@@ -513,7 +565,7 @@ const rejectDispatch = async (
 
 		await tx.emergencyRequest.update({
 			where: { id: dispatch.emergencyId },
-			data: { status: EmergencyStatus.DISPATCHING },
+			data: { status: EmergencyStatus.REASSIGNMENT_REQUIRED },
 		});
 
 		await tx.incidentTimeline.create({
@@ -539,6 +591,7 @@ const cancelDispatch = async (
 	userId: string,
 	userRole: string,
 	payload: ICancelDispatchPayload,
+	ipAddress: string,
 ) => {
 	const dispatch = await prisma.dispatch.findUnique({
 		where: { id: dispatchId },
@@ -556,6 +609,12 @@ const cancelDispatch = async (
 		);
 	}
 
+	// Look up dispatcher's name for the audit log.
+	const dispatcher = await prisma.user.findUnique({
+		where: { id: userId },
+		select: { name: true },
+	});
+
 	const result = await prisma.$transaction(async (tx) => {
 		const updatedDispatch = await tx.dispatch.update({
 			where: { id: dispatchId },
@@ -569,7 +628,7 @@ const cancelDispatch = async (
 
 		await tx.emergencyRequest.update({
 			where: { id: dispatch.emergencyId },
-			data: { status: EmergencyStatus.DISPATCHING },
+			data: { status: EmergencyStatus.REASSIGNMENT_REQUIRED },
 		});
 
 		await tx.incidentTimeline.create({
@@ -584,10 +643,141 @@ const cancelDispatch = async (
 			},
 		});
 
+		// Feature 3 — Audit log: CANCEL_DISPATCH
+		await tx.auditLog.create({
+			data: {
+				action: "CANCEL_DISPATCH",
+				entity: "DISPATCH",
+				entityId: dispatchId,
+				description: `Dispatch ${dispatchId} cancelled by ${userRole}. Reason: ${payload.reason}`,
+				performedBy: userId,
+				performedByRole: userRole,
+				performedByName: dispatcher?.name ?? "Unknown",
+				ipAddress,
+				oldData: { status: DispatchStatus.PENDING_ACCEPTANCE },
+				newData: { status: DispatchStatus.CANCELLED, reason: payload.reason },
+			},
+		});
+
 		return updatedDispatch;
 	});
 
 	return result;
+};
+
+/**
+ * Feature #2 — Driver Dispatch Discovery
+ * Returns all dispatches in PENDING_ACCEPTANCE status assigned to the
+ * authenticated driver, enriched with emergency and ambulance details
+ * so the driver can decide to accept or reject without any external push.
+ */
+const getMyPendingDispatches = async (userId: string) => {
+	const driver = await prisma.driver.findUnique({ where: { userId } });
+
+	if (!driver) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Driver profile not found for the authenticated user.",
+		);
+	}
+
+	const dispatches = await prisma.dispatch.findMany({
+		where: {
+			driverId: driver.id,
+			status: DispatchStatus.PENDING_ACCEPTANCE,
+		},
+		orderBy: { createdAt: "desc" },
+		include: {
+			ambulance: {
+				select: {
+					id: true,
+					registrationNumber: true,
+					type: true,
+					capabilities: true,
+				},
+			},
+			emergency: {
+				select: {
+					id: true,
+					incidentNumber: true,
+					emergencyType: true,
+					priority: true,
+					locationAddress: true,
+					locationLat: true,
+					locationLng: true,
+					description: true,
+					callerName: true,
+					callerPhone: true,
+				},
+			},
+		},
+	});
+
+	return dispatches;
+};
+
+/**
+ * Feature #2 — Driver Dispatch Discovery (single record)
+ * Any DRIVER can fetch a specific dispatch by ID, but only if it belongs
+ * to them. SUPER_ADMIN / ADMIN / DISPATCHER may fetch any dispatch.
+ */
+const getDispatchById = async (dispatchId: string, userId: string, userRole: string) => {
+	const dispatch = await prisma.dispatch.findUnique({
+		where: { id: dispatchId },
+		include: {
+			ambulance: {
+				select: {
+					id: true,
+					registrationNumber: true,
+					type: true,
+					capabilities: true,
+					currentLat: true,
+					currentLng: true,
+				},
+			},
+			driver: {
+				include: {
+					user: { select: { id: true, name: true, phone: true } },
+				},
+			},
+			emergency: {
+				select: {
+					id: true,
+					incidentNumber: true,
+					emergencyType: true,
+					priority: true,
+					status: true,
+					locationAddress: true,
+					locationLat: true,
+					locationLng: true,
+					description: true,
+					callerName: true,
+					callerPhone: true,
+				},
+			},
+			trip: {
+				select: { id: true, status: true },
+			},
+		},
+	});
+
+	if (!dispatch) {
+		throw new AppError(httpStatus.NOT_FOUND, "Dispatch record not found.");
+	}
+
+	// Drivers can only view their own dispatches.
+	if (userRole === "DRIVER") {
+		const driver = await prisma.driver.findUnique({ where: { userId } });
+
+		if (!driver || dispatch.driverId !== driver.id) {
+			throw new AppError(
+				httpStatus.FORBIDDEN,
+				"You are not the assigned driver for this dispatch.",
+			);
+		}
+	}
+
+	return dispatch;
 };
 
 export const dispatchService = {
@@ -596,4 +786,6 @@ export const dispatchService = {
 	acceptDispatch,
 	rejectDispatch,
 	cancelDispatch,
+	getMyPendingDispatches,
+	getDispatchById,
 };

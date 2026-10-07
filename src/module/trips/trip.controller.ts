@@ -40,17 +40,21 @@ const selectHospital = catchAsync(async (req: Request, res: Response) => {
 	const userRole = req.user!.role as string;
 	const payload = req.body;
 
-	const trip = await tripService.selectHospital(
+	const { trip, capacityWarning } = await tripService.selectHospital(
 		tripId,
 		userId,
 		userRole,
 		payload,
 	);
 
+	const message = capacityWarning
+		? `Destination hospital selected successfully. ${capacityWarning}`
+		: "Destination hospital selected successfully.";
+
 	sendResponse(res, {
 		success: true,
 		statusCode: httpStatus.OK,
-		message: "Destination hospital selected successfully.",
+		message,
 		data: trip,
 	});
 });

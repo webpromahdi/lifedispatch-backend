@@ -1,6 +1,6 @@
 import axios from "axios";
 import httpStatus from "http-status";
-import { PaymentStatus } from "../../../generated/prisma/enums.js";
+import { PaymentStatus, UserRole } from "../../../generated/prisma/enums.js";
 import config from "../../config/index.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
@@ -215,7 +215,18 @@ const handleIpn = async (body: Record<string, unknown>) => {
 	}
 };
 
-const getPaymentById = async (paymentId: string, userId: string) => {
+/** Roles that may view any payment record regardless of patient ownership. */
+const PRIVILEGED_VIEWER_ROLES: UserRole[] = [
+	UserRole.SUPER_ADMIN,
+	UserRole.ADMIN,
+	UserRole.DISPATCHER,
+];
+
+const getPaymentById = async (
+	paymentId: string,
+	userId: string,
+	userRole: UserRole,
+) => {
 	const payment = await prisma.payment.findUnique({
 		where: { id: paymentId },
 		include: {
@@ -228,7 +239,12 @@ const getPaymentById = async (paymentId: string, userId: string) => {
 		throw new AppError(httpStatus.NOT_FOUND, "Payment record not found.");
 	}
 
-	if (payment.patientId !== userId) {
+	// Privileged roles (SUPER_ADMIN, ADMIN, DISPATCHER) can view any payment.
+	// Patients may only view their own.
+	if (
+		!PRIVILEGED_VIEWER_ROLES.includes(userRole) &&
+		payment.patientId !== userId
+	) {
 		throw new AppError(
 			httpStatus.FORBIDDEN,
 			"You are not authorized to view this payment.",

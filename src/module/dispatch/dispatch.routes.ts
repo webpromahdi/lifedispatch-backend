@@ -26,6 +26,29 @@ router.post(
 	dispatchController.createDispatch,
 );
 
+// ─── Feature #2: Driver Dispatch Discovery ────────────────────────────────────
+// NOTE: /me MUST be registered before /:id so Express does not treat the
+// literal string "me" as a dispatch ID parameter.
+
+router.get(
+	"/me",
+	auth(UserRole.DRIVER),
+	dispatchController.getMyPendingDispatches,
+);
+
+router.get(
+	"/:id",
+	auth(
+		UserRole.SUPER_ADMIN,
+		UserRole.ADMIN,
+		UserRole.DISPATCHER,
+		UserRole.DRIVER,
+	),
+	dispatchController.getDispatchById,
+);
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 router.post(
 	"/:id/accept",
 	auth(UserRole.DRIVER),

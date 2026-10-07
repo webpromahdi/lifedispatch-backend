@@ -84,10 +84,29 @@ export const auth = (...requiredRoles: UserRole[]) => {
 			);
 		}
 
+		// Feature 6: enforce UserStatus on every authenticated request so that
+		// an already-issued token stops working the moment an admin suspends
+		// or deletes the account — not only at the next login.
 		if (user.status === "SUSPENDED") {
 			throw new AppError(
 				httpStatus.FORBIDDEN,
 				"Your account has been suspended. Please contact support.",
+			);
+		}
+
+		if (user.status === "DELETED" || user.isDeleted) {
+			throw new AppError(
+				httpStatus.FORBIDDEN,
+				"This account has been deleted. Please contact support if this is a mistake.",
+			);
+		}
+
+		// Block all routes if the user must change their temporary password first.
+		// The /auth/change-password endpoint is the only one allowed through.
+		if (user.mustChangePassword && !req.path.endsWith("/auth/change-password")) {
+			throw new AppError(
+				httpStatus.FORBIDDEN,
+				"You must change your temporary password before accessing this resource. Please use POST /api/v1/auth/change-password.",
 			);
 		}
 

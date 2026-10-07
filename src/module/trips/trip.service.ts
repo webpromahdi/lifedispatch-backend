@@ -4,6 +4,7 @@ import {
 	AmbulanceStatus,
 	DispatchStatus,
 	EmergencyStatus,
+	HospitalDiversionStatus,
 	TripStatus,
 	UserRole,
 } from "../../../generated/prisma/enums.js";
@@ -31,6 +32,8 @@ function generateInvoicePDF(
 		tripId: string;
 		baseFare: number;
 		distanceCharge: number;
+		waitingCharge: number;
+		additionalCharges: number;
 		totalAmount: number;
 	},
 	trip: { distanceKm: number | null },
@@ -59,6 +62,8 @@ function generateInvoicePDF(
 		doc.text("-------------------------------------------");
 		doc.text(`Base Fare:          BDT ${payment.baseFare.toFixed(2)}`);
 		doc.text(`Distance Charges:   BDT ${payment.distanceCharge.toFixed(2)}`);
+		doc.text(`Waiting Charges:    BDT ${payment.waitingCharge.toFixed(2)}`);
+		doc.text(`Additional Charges: BDT ${payment.additionalCharges.toFixed(2)}`);
 		doc.text(`Total Distance:     ${trip.distanceKm ?? 0} km`);
 		doc.text("-------------------------------------------");
 		doc
@@ -295,6 +300,15 @@ const selectHospital = async (
 
 	const hospital = await prisma.hospital.findUnique({
 		where: { id: payload.hospitalId },
+		select: {
+			id: true,
+			name: true,
+			address: true,
+			diversionStatus: true,
+			diversionReason: true,
+			totalErBeds: true,
+			availableErBeds: true,
+		},
 	});
 
 	if (!hospital) {
@@ -309,7 +323,17 @@ const selectHospital = async (
 				hospitalSelectedAt: new Date(),
 			},
 			include: {
-				hospital: { select: { id: true, name: true, address: true } },
+				hospital: {
+					select: {
+						id: true,
+						name: true,
+						address: true,
+						diversionStatus: true,
+						diversionReason: true,
+						totalErBeds: true,
+						availableErBeds: true,
+					},
+				},
 			},
 		});
 
@@ -328,7 +352,39 @@ const selectHospital = async (
 		return updated;
 	});
 
-	return updatedTrip;
+	// Build a non-blocking capacity warning for the caller
+	const warnings: string[] = [];
+
+	if (hospital.diversionStatus === HospitalDiversionStatus.DIVERTING) {
+		const reason = hospital.diversionReason
+			? ` Reason: ${hospital.diversionReason}`
+			: "";
+		warnings.push(
+			`Warning: ${hospital.name} is currently DIVERTING patients.${reason}`,
+		);
+	} else if (hospital.diversionStatus === HospitalDiversionStatus.CLOSED) {
+		const reason = hospital.diversionReason
+			? ` Reason: ${hospital.diversionReason}`
+			: "";
+		warnings.push(`Warning: ${hospital.name} is currently CLOSED.${reason}`);
+	}
+
+	if (Number(hospital.availableErBeds) === 0) {
+		warnings.push(
+			`Warning: ${hospital.name} has no available ER beds (0 / ${hospital.totalErBeds}).`,
+		);
+	} else if (
+		hospital.totalErBeds > 0 &&
+		Number(hospital.availableErBeds) / hospital.totalErBeds < 0.1
+	) {
+		warnings.push(
+			`Warning: ${hospital.name} is near full capacity — only ${hospital.availableErBeds} of ${hospital.totalErBeds} ER beds available.`,
+		);
+	}
+
+	const capacityWarning = warnings.length > 0 ? warnings.join(" ") : null;
+
+	return { trip: updatedTrip, capacityWarning };
 };
 
 const completeTrip = async (
@@ -378,7 +434,18 @@ const completeTrip = async (
 	const distanceKm = payload.distanceKm;
 	const baseFare = FARE_BASE_BDT;
 	const distanceCharge = Math.round(distanceKm * FARE_PER_KM_BDT * 100) / 100;
-	const totalAmount = Math.round((baseFare + distanceCharge) * 100) / 100;
+
+	let waitingCharge = 0;
+	if (trip.arrivedAtSceneAt && trip.patientPickedUpAt) {
+		const waitingMinutes = (trip.patientPickedUpAt.getTime() - trip.arrivedAtSceneAt.getTime()) / 60000;
+		if (waitingMinutes > 15) {
+			waitingCharge = Math.round((waitingMinutes - 15) * 10 * 100) / 100;
+		}
+	}
+
+	const additionalCharges = payload.additionalCharges ?? 0;
+
+	const totalAmount = Math.round((baseFare + distanceCharge + waitingCharge + additionalCharges) * 100) / 100;
 
 	const now = new Date();
 	const arrivedAt = payload.arrivedAtHospitalAt
@@ -429,6 +496,8 @@ const completeTrip = async (
 				invoiceNumber,
 				baseFare,
 				distanceCharge,
+				waitingCharge,
+				additionalCharges,
 				totalAmount,
 				currency: "BDT",
 			},
@@ -457,6 +526,8 @@ const completeTrip = async (
 			tripId: result.payment.tripId,
 			baseFare: result.payment.baseFare.toNumber(),
 			distanceCharge: result.payment.distanceCharge.toNumber(),
+			waitingCharge: result.payment.waitingCharge.toNumber(),
+			additionalCharges: result.payment.additionalCharges.toNumber(),
 			totalAmount: result.payment.totalAmount.toNumber(),
 		},
 		{ distanceKm: result.trip.distanceKm?.toNumber() ?? null },

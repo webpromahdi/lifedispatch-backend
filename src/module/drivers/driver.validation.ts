@@ -18,11 +18,6 @@ export const createDriverSchema = z.object({
 		.max(20, "Phone must not exceed 20 characters.")
 		.optional(),
 
-	password: z
-		.string()
-		.min(8, "Password must be at least 8 characters.")
-		.max(100, "Password must not exceed 100 characters."),
-
 	licenseNumber: z
 		.string()
 		.min(1, "License number is required.")

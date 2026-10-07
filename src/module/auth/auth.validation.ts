@@ -55,3 +55,13 @@ export const ResetPasswordZodSchema = z.object({
 		.regex(/[^A-Za-z0-9]/, "Password must contain atleast 1 Special Character"),
 	otp: z.string().length(6),
 });
+
+export const ChangePasswordZodSchema = z.object({
+	newPassword: z
+		.string()
+		.min(8, "Password must be minimum 8 characters long.")
+		.regex(/[a-z]/, "Password must contain at least 1 lowercase letter.")
+		.regex(/[A-Z]/, "Password must contain at least 1 uppercase letter.")
+		.regex(/[0-9]/, "Password must contain at least 1 number.")
+		.regex(/[^A-Za-z0-9]/, "Password must contain at least 1 special character."),
+});

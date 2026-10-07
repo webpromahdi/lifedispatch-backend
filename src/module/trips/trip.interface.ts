@@ -10,4 +10,5 @@ export interface ISelectHospitalPayload {
 export interface ICompleteTripPayload {
 	distanceKm: number;
 	arrivedAtHospitalAt?: string;
+	additionalCharges?: number;
 }
