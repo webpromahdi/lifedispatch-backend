@@ -12,6 +12,12 @@ import {
 const router = Router();
 
 router.get(
+	"/me",
+	auth(UserRole.DRIVER),
+	tripController.getMyTrips,
+);
+
+router.get(
 	"/:id",
 	auth(
 		UserRole.SUPER_ADMIN,

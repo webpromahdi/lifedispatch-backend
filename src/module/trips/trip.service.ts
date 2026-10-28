@@ -1,5 +1,6 @@
 import httpStatus from "http-status";
 import PDFDocument from "pdfkit";
+import type { Prisma } from "../../../generated/prisma/browser.js";
 import {
 	AmbulanceStatus,
 	DispatchStatus,
@@ -536,8 +537,92 @@ const completeTrip = async (
 	return { ...result, invoicePdf };
 };
 
+const getMyTrips = async (
+	userId: string,
+	page: number,
+	limit: number,
+	status?: TripStatus,
+) => {
+	const driver = await prisma.driver.findUnique({ where: { userId } });
+
+	if (!driver) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Driver profile not found for the authenticated user.",
+		);
+	}
+
+	const skip = (page - 1) * limit;
+	const whereConditions: Prisma.TripWhereInput = {
+		driverId: driver.id,
+	};
+
+	if (status) {
+		whereConditions.status = status;
+	}
+
+	const [trips, total] = await Promise.all([
+		prisma.trip.findMany({
+			where: whereConditions,
+			orderBy: { createdAt: "desc" },
+			skip,
+			take: limit,
+			include: {
+				emergency: {
+					select: {
+						id: true,
+						incidentNumber: true,
+						emergencyType: true,
+						priority: true,
+						status: true,
+						locationAddress: true,
+						description: true,
+					},
+				},
+				ambulance: {
+					select: {
+						id: true,
+						registrationNumber: true,
+						type: true,
+						capabilities: true,
+					},
+				},
+				hospital: {
+					select: {
+						id: true,
+						name: true,
+						address: true,
+						phone: true,
+					},
+				},
+				payment: {
+					select: {
+						id: true,
+						invoiceNumber: true,
+						totalAmount: true,
+						paymentStatus: true,
+						currency: true,
+					},
+				},
+			},
+		}),
+		prisma.trip.count({ where: whereConditions }),
+	]);
+
+	return {
+		trips,
+		meta: {
+			page,
+			limit,
+			total,
+			totalPages: Math.ceil(total / limit),
+		},
+	};
+};
+
 export const tripService = {
 	getTripById,
+	getMyTrips,
 	updateTripStatus,
 	selectHospital,
 	completeTrip,

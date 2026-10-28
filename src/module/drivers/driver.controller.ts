@@ -128,9 +128,22 @@ const toggleShift = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getMyDriverProfile = catchAsync(async (req: Request, res: Response) => {
+	const userId = req.user!.userId;
+	const driver = await driverService.getMyDriverProfileFromDB(userId);
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "Driver profile retrieved successfully.",
+		data: driver,
+	});
+});
+
 export const driverController = {
 	createDriver,
 	getAllDrivers,
 	updateDriver,
 	toggleShift,
+	getMyDriverProfile,
 };

@@ -26,6 +26,12 @@ router.get(
 	driverController.getAllDrivers,
 );
 
+router.get(
+	"/me",
+	auth(UserRole.DRIVER),
+	driverController.getMyDriverProfile,
+);
+
 router.patch(
 	"/me/shift",
 	auth(UserRole.DRIVER),

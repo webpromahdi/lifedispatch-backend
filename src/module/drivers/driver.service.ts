@@ -291,9 +291,26 @@ const toggleShiftInDB = async (userId: string, action: "start" | "end") => {
 	return updated;
 };
 
+const getMyDriverProfileFromDB = async (userId: string) => {
+	const driver = await prisma.driver.findUnique({
+		where: { userId },
+		include: driverExtendedDetails,
+	});
+
+	if (!driver) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Driver profile not found for the authenticated user.",
+		);
+	}
+
+	return driver;
+};
+
 export const driverService = {
 	createDriverIntoDB,
 	getAllDriversFromDB,
 	updateDriverInDB,
 	toggleShiftInDB,
+	getMyDriverProfileFromDB,
 };

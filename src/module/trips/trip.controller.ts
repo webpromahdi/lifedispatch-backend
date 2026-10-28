@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
+import { TripStatus } from "../../../generated/prisma/enums.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { tripService } from "./trip.service.js";
@@ -91,8 +92,44 @@ const completeTrip = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getMyTrips = catchAsync(async (req: Request, res: Response) => {
+	const userId = req.user!.userId as string;
+	const page = Math.max(1, Number(req.query.page) || 1);
+	const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+
+	let validStatus: TripStatus | undefined;
+	if (
+		typeof req.query.status === "string" &&
+		req.query.status !== "" &&
+		req.query.status !== "ALL"
+	) {
+		if (Object.values(TripStatus).includes(req.query.status as TripStatus)) {
+			validStatus = req.query.status as TripStatus;
+		} else {
+			return sendResponse(res, {
+				success: true,
+				statusCode: httpStatus.OK,
+				message: "Driver trips retrieved successfully.",
+				data: [],
+				meta: { page, limit, total: 0, totalPages: 0 },
+			});
+		}
+	}
+
+	const result = await tripService.getMyTrips(userId, page, limit, validStatus);
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "Driver trips retrieved successfully.",
+		data: result.trips,
+		meta: result.meta,
+	});
+});
+
 export const tripController = {
 	getTripById,
+	getMyTrips,
 	updateTripStatus,
 	selectHospital,
 	completeTrip,
