@@ -28,8 +28,15 @@ router.get(
 		UserRole.ADMIN,
 		UserRole.DISPATCHER,
 		UserRole.DRIVER,
+		UserRole.HOSPITAL_STAFF,
 	),
 	hospitalController.getAllHospitals,
+);
+
+router.get(
+	"/staff/me",
+	auth(UserRole.HOSPITAL_STAFF),
+	hospitalController.getMyStaffProfile,
 );
 
 router.patch(
@@ -46,8 +53,15 @@ router.get(
 		UserRole.ADMIN,
 		UserRole.DISPATCHER,
 		UserRole.DRIVER,
+		UserRole.HOSPITAL_STAFF,
 	),
 	hospitalController.getHospitalById,
+);
+
+router.get(
+	"/:id/inbound",
+	auth(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOSPITAL_STAFF),
+	hospitalController.getInboundTrips,
 );
 
 router.patch(

@@ -17,4 +17,5 @@ future_Feature.md
 logs/
 
 /generated/prisma
+dist
 

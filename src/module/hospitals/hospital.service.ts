@@ -631,6 +631,121 @@ const toggleShiftInDB = async (userId: string, action: "start" | "end") => {
 	});
 };
 
+const getMyStaffProfileFromDB = async (userId: string) => {
+	const staff = await prisma.hospitalStaff.findUnique({
+		where: { userId },
+		include: {
+			user: {
+				omit: { password: true },
+			},
+			hospital: {
+				include: {
+					_count: {
+						select: { staff: true, trips: true },
+					},
+				},
+			},
+		},
+	});
+
+	if (!staff) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Hospital staff profile not found for the authenticated user.",
+		);
+	}
+
+	const occupancyPercent =
+		staff.hospital.totalErBeds > 0
+			? Math.round(
+					((staff.hospital.totalErBeds - Number(staff.hospital.availableErBeds)) /
+						staff.hospital.totalErBeds) *
+						100,
+				)
+			: null;
+
+	return {
+		...staff,
+		hospital: {
+			...staff.hospital,
+			occupancyPercent,
+		},
+	};
+};
+
+const getInboundTripsFromDB = async (hospitalId: string) => {
+	const hospital = await prisma.hospital.findUnique({
+		where: { id: hospitalId, isActive: true },
+	});
+
+	if (!hospital) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Hospital not found or is no longer active.",
+		);
+	}
+
+	const trips = await prisma.trip.findMany({
+		where: {
+			hospitalId,
+			status: "ACTIVE",
+		},
+		orderBy: {
+			createdAt: "desc",
+		},
+		include: {
+			emergency: {
+				select: {
+					id: true,
+					incidentNumber: true,
+					emergencyType: true,
+					priority: true,
+					status: true,
+					locationAddress: true,
+					description: true,
+					dispatcherNotes: true,
+					callerName: true,
+					callerPhone: true,
+				},
+			},
+			ambulance: {
+				select: {
+					id: true,
+					plateNumber: true,
+					type: true,
+					status: true,
+				},
+			},
+			driver: {
+				select: {
+					id: true,
+					licenseNumber: true,
+					user: {
+						select: {
+							id: true,
+							name: true,
+							phone: true,
+						},
+					},
+				},
+			},
+			patient: {
+				select: {
+					id: true,
+					name: true,
+					phone: true,
+					bloodType: true,
+					knownConditions: true,
+					emergencyContactName: true,
+					emergencyContactPhone: true,
+				},
+			},
+		},
+	});
+
+	return trips;
+};
+
 export const hospitalService = {
 	createHospitalIntoDB,
 	getHospitalByIdFromDB,
@@ -642,4 +757,6 @@ export const hospitalService = {
 	updateStaffInDB,
 	deleteStaffInDB,
 	toggleShiftInDB,
+	getMyStaffProfileFromDB,
+	getInboundTripsFromDB,
 };

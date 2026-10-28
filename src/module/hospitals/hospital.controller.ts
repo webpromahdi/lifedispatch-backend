@@ -368,6 +368,44 @@ const toggleShift = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getMyStaffProfile = catchAsync(async (req: Request, res: Response) => {
+	const userId = req.user!.userId as string;
+
+	const result = await hospitalService.getMyStaffProfileFromDB(userId);
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "Hospital staff profile retrieved successfully.",
+		data: result,
+	});
+});
+
+const getInboundTrips = catchAsync(async (req: Request, res: Response) => {
+	const hospitalId = req.params.id as string;
+	const requesterId = req.user!.userId as string;
+	const requesterRole = req.user!.role;
+
+	if (requesterRole === UserRole.HOSPITAL_STAFF) {
+		const staffRecord = await getRequesterStaffRecord(requesterId, hospitalId);
+		if (!staffRecord) {
+			throw new AppError(
+				httpStatus.FORBIDDEN,
+				"You are not a staff member of this hospital.",
+			);
+		}
+	}
+
+	const result = await hospitalService.getInboundTripsFromDB(hospitalId);
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "Inbound trips retrieved successfully.",
+		data: result,
+	});
+});
+
 export const hospitalController = {
 	createHospital,
 	getHospitalById,
@@ -379,4 +417,6 @@ export const hospitalController = {
 	updateStaff,
 	deleteStaff,
 	toggleShift,
+	getMyStaffProfile,
+	getInboundTrips,
 };

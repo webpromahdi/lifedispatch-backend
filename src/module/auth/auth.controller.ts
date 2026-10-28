@@ -76,7 +76,12 @@ const loginUser = catchAsync(
 						return next(err);
 					}
 					if (!user) {
-						return next(new AppError(httpStatus.UNAUTHORIZED, info?.message || "Invalid credentials!"));
+						return next(
+							new AppError(
+								httpStatus.UNAUTHORIZED,
+								info?.message || "Invalid credentials!",
+							),
+						);
 					}
 					const { accessToken, refreshToken } =
 						await authService.loginUser(user);
@@ -182,12 +187,18 @@ const googleLoginCallback = catchAsync(
 				try {
 					if (err) {
 						return next(
-							new AppError(httpStatus.UNAUTHORIZED, err?.message || "Google authentication Failed"),
+							new AppError(
+								httpStatus.UNAUTHORIZED,
+								err?.message || "Google authentication Failed",
+							),
 						);
 					}
 					if (!user) {
 						return next(
-							new AppError(httpStatus.UNAUTHORIZED, info?.message || "Google authentication Failed"),
+							new AppError(
+								httpStatus.UNAUTHORIZED,
+								info?.message || "Google authentication Failed",
+							),
 						);
 					}
 
