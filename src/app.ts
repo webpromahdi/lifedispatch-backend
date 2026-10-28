@@ -9,14 +9,14 @@ import { globalErrorHandler } from "./middleware/globalErrorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 import { authRoutes } from "./module/auth/auth.route.js";
 import "./config/passport.js";
+import { adminRoutes } from "./module/admin/admin.routes.js";
 import { ambulanceRoutes } from "./module/ambulances/ambulance.routes.js";
 import { dispatchRoutes } from "./module/dispatch/dispatch.routes.js";
 import { driverRoutes } from "./module/drivers/driver.routes.js";
 import { emergencyRoutes } from "./module/emergencies/emergency.routes.js";
 import { hospitalRoutes } from "./module/hospitals/hospital.routes.js";
-import { tripRoutes } from "./module/trips/trip.routes.js";
 import { paymentRoutes } from "./module/payment/payment.route.js";
-import { adminRoutes } from "./module/admin/admin.routes.js";
+import { tripRoutes } from "./module/trips/trip.routes.js";
 
 const app: Application = express();
 

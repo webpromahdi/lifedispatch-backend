@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from "express";
+import type { CookieOptions, NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import passport from "passport";
 import config from "../../config/index.js";
@@ -7,6 +7,15 @@ import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import type { ILoginUser } from "./auth.interface.js";
 import { authService } from "./auth.service.js";
+
+const isProduction = config.node_env === "production";
+
+export const getAuthCookieOptions = (maxAgeMs?: number): CookieOptions => ({
+	httpOnly: true,
+	secure: isProduction,
+	sameSite: isProduction ? "none" : "lax",
+	...(maxAgeMs ? { maxAge: maxAgeMs } : {}),
+});
 
 const register = catchAsync(
 	async (req: Request, res: Response, next: NextFunction) => {
@@ -30,18 +39,16 @@ const verifyUserEmail = catchAsync(async (req: Request, res: Response) => {
 
 	const { accessToken, refreshToken, user } = result;
 
-	res.cookie("accessToken", accessToken, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24, // 24 hours
-	});
-	res.cookie("refreshToken", refreshToken, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "none",
-		maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-	});
+	res.cookie(
+		"accessToken",
+		accessToken,
+		getAuthCookieOptions(1000 * 60 * 60 * 24),
+	);
+	res.cookie(
+		"refreshToken",
+		refreshToken,
+		getAuthCookieOptions(1000 * 60 * 60 * 24 * 7),
+	);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -74,18 +81,16 @@ const loginUser = catchAsync(
 					const { accessToken, refreshToken } =
 						await authService.loginUser(user);
 
-					res.cookie("accessToken", accessToken, {
-						httpOnly: true,
-						secure: process.env.NODE_ENV === config.node_env,
-						sameSite: "none",
-						maxAge: 1000 * 60 * 60 * 24,
-					});
-					res.cookie("refreshToken", refreshToken, {
-						httpOnly: true,
-						secure: process.env.NODE_ENV === config.node_env,
-						sameSite: "none",
-						maxAge: 1000 * 60 * 60 * 24 * 7,
-					});
+					res.cookie(
+						"accessToken",
+						accessToken,
+						getAuthCookieOptions(1000 * 60 * 60 * 24),
+					);
+					res.cookie(
+						"refreshToken",
+						refreshToken,
+						getAuthCookieOptions(1000 * 60 * 60 * 24 * 7),
+					);
 
 					sendResponse(res, {
 						success: true,
@@ -141,20 +146,18 @@ const refreshToken = catchAsync(
 		const { accessToken, refreshToken: newRefreshToken } =
 			await authService.refreshToken(token);
 
-		res.cookie("accessToken", accessToken, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "none",
-			maxAge: 1000 * 60 * 60 * 24,
-		});
+		res.cookie(
+			"accessToken",
+			accessToken,
+			getAuthCookieOptions(1000 * 60 * 60 * 24),
+		);
 
 		// Feature 5: rotate refresh token cookie as well
-		res.cookie("refreshToken", newRefreshToken, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "none",
-			maxAge: 1000 * 60 * 60 * 24 * 7,
-		});
+		res.cookie(
+			"refreshToken",
+			newRefreshToken,
+			getAuthCookieOptions(1000 * 60 * 60 * 24 * 7),
+		);
 
 		sendResponse(res, {
 			success: true,
@@ -190,6 +193,17 @@ const googleLoginCallback = catchAsync(
 
 					const { accessToken, refreshToken } =
 						await authService.loginUser(user);
+
+					res.cookie(
+						"accessToken",
+						accessToken,
+						getAuthCookieOptions(1000 * 60 * 60 * 24),
+					);
+					res.cookie(
+						"refreshToken",
+						refreshToken,
+						getAuthCookieOptions(1000 * 60 * 60 * 24 * 7),
+					);
 
 					res.redirect(
 						`${config.frontend_url}/api/v1/auth/google?accessToken=${accessToken}&refreshToken=${refreshToken}`,
@@ -227,8 +241,8 @@ const logout = catchAsync(async (req: Request, res: Response) => {
 		await authService.logoutUser(userId, token);
 	}
 
-	res.clearCookie("accessToken", { httpOnly: true, sameSite: "none", secure: process.env.NODE_ENV === config.node_env });
-	res.clearCookie("refreshToken", { httpOnly: true, sameSite: "none", secure: process.env.NODE_ENV === config.node_env });
+	res.clearCookie("accessToken", getAuthCookieOptions());
+	res.clearCookie("refreshToken", getAuthCookieOptions());
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -247,8 +261,8 @@ const logoutAll = catchAsync(async (req: Request, res: Response) => {
 
 	await authService.logoutAll(userId);
 
-	res.clearCookie("accessToken", { httpOnly: true, sameSite: "none", secure: process.env.NODE_ENV === config.node_env });
-	res.clearCookie("refreshToken", { httpOnly: true, sameSite: "none", secure: process.env.NODE_ENV === config.node_env });
+	res.clearCookie("accessToken", getAuthCookieOptions());
+	res.clearCookie("refreshToken", getAuthCookieOptions());
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
