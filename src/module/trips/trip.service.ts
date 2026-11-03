@@ -640,7 +640,6 @@ const getAllTrips = async (
 	if (filters.search) {
 		const term = filters.search.trim();
 		whereConditions.OR = [
-			{ id: { contains: term, mode: "insensitive" } },
 			{ emergency: { incidentNumber: { contains: term, mode: "insensitive" } } },
 			{ ambulance: { registrationNumber: { contains: term, mode: "insensitive" } } },
 			{ driver: { user: { name: { contains: term, mode: "insensitive" } } } },
