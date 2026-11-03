@@ -132,6 +132,26 @@ const getAllEmergenciesFromDB = async (
 						role: true,
 					},
 				},
+				trips: {
+					include: {
+						payment: {
+							select: {
+								id: true,
+								invoiceNumber: true,
+								totalAmount: true,
+								paymentStatus: true,
+								currency: true,
+							},
+						},
+						hospital: {
+							select: {
+								id: true,
+								name: true,
+								address: true,
+							},
+						},
+					},
+				},
 			},
 		}),
 		prisma.emergencyRequest.count({ where: whereConditions }),
@@ -171,6 +191,12 @@ const getEmergencyById = async (
 							user: { omit: { password: true } },
 						},
 					},
+				},
+			},
+			trips: {
+				include: {
+					payment: true,
+					hospital: true,
 				},
 			},
 		},

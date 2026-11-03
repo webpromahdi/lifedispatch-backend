@@ -11,13 +11,28 @@ const SSL_SANDBOX_VALIDATE_URL =
 	"https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php";
 
 const initiatePayment = async (paymentId: string, userId: string) => {
-	const payment = await prisma.payment.findUnique({
+	let payment = await prisma.payment.findUnique({
 		where: { id: paymentId },
 		include: {
 			patient: { select: { id: true, name: true, email: true } },
 			trip: { select: { id: true } },
 		},
 	});
+
+	if (!payment) {
+		payment = await prisma.payment.findFirst({
+			where: {
+				OR: [
+					{ trip: { emergencyId: paymentId } },
+					{ tripId: paymentId },
+				],
+			},
+			include: {
+				patient: { select: { id: true, name: true, email: true } },
+				trip: { select: { id: true } },
+			},
+		});
+	}
 
 	if (!payment) {
 		throw new AppError(httpStatus.NOT_FOUND, "Payment record not found.");
@@ -40,7 +55,7 @@ const initiatePayment = async (paymentId: string, userId: string) => {
 	const transactionId = `LD-${payment.invoiceNumber}-${Date.now()}`;
 
 	await prisma.payment.update({
-		where: { id: paymentId },
+		where: { id: payment.id },
 		data: {
 			transactionId: transactionId,
 			paymentInitiatedAt: new Date(),
@@ -227,13 +242,28 @@ const getPaymentById = async (
 	userId: string,
 	userRole: UserRole,
 ) => {
-	const payment = await prisma.payment.findUnique({
+	let payment = await prisma.payment.findUnique({
 		where: { id: paymentId },
 		include: {
-			trip: { select: { id: true, status: true } },
+			trip: { select: { id: true, status: true, emergencyId: true } },
 			patient: { select: { id: true, name: true, email: true } },
 		},
 	});
+
+	if (!payment) {
+		payment = await prisma.payment.findFirst({
+			where: {
+				OR: [
+					{ trip: { emergencyId: paymentId } },
+					{ tripId: paymentId },
+				],
+			},
+			include: {
+				trip: { select: { id: true, status: true, emergencyId: true } },
+				patient: { select: { id: true, name: true, email: true } },
+			},
+		});
+	}
 
 	if (!payment) {
 		throw new AppError(httpStatus.NOT_FOUND, "Payment record not found.");

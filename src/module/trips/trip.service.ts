@@ -620,9 +620,102 @@ const getMyTrips = async (
 	};
 };
 
+const getAllTrips = async (
+	page: number,
+	limit: number,
+	filters: {
+		status?: TripStatus;
+		hospitalId?: string;
+		driverId?: string;
+		search?: string;
+	},
+) => {
+	const skip = (page - 1) * limit;
+	const whereConditions: Prisma.TripWhereInput = {};
+
+	if (filters.status) whereConditions.status = filters.status;
+	if (filters.hospitalId) whereConditions.hospitalId = filters.hospitalId;
+	if (filters.driverId) whereConditions.driverId = filters.driverId;
+
+	if (filters.search) {
+		const term = filters.search.trim();
+		whereConditions.OR = [
+			{ id: { contains: term, mode: "insensitive" } },
+			{ emergency: { incidentNumber: { contains: term, mode: "insensitive" } } },
+			{ ambulance: { registrationNumber: { contains: term, mode: "insensitive" } } },
+			{ driver: { user: { name: { contains: term, mode: "insensitive" } } } },
+			{ hospital: { name: { contains: term, mode: "insensitive" } } },
+		];
+	}
+
+	const [trips, total] = await Promise.all([
+		prisma.trip.findMany({
+			where: whereConditions,
+			orderBy: { createdAt: "desc" },
+			skip,
+			take: limit,
+			include: {
+				emergency: {
+					select: {
+						id: true,
+						incidentNumber: true,
+						emergencyType: true,
+						priority: true,
+						status: true,
+						locationAddress: true,
+						description: true,
+					},
+				},
+				ambulance: {
+					select: {
+						id: true,
+						registrationNumber: true,
+						type: true,
+						capabilities: true,
+					},
+				},
+				driver: {
+					include: {
+						user: { select: { id: true, name: true, phone: true } },
+					},
+				},
+				hospital: {
+					select: {
+						id: true,
+						name: true,
+						address: true,
+						phone: true,
+					},
+				},
+				payment: {
+					select: {
+						id: true,
+						invoiceNumber: true,
+						totalAmount: true,
+						paymentStatus: true,
+						currency: true,
+					},
+				},
+			},
+		}),
+		prisma.trip.count({ where: whereConditions }),
+	]);
+
+	return {
+		trips,
+		meta: {
+			page,
+			limit,
+			total,
+			totalPages: Math.ceil(total / limit),
+		},
+	};
+};
+
 export const tripService = {
 	getTripById,
 	getMyTrips,
+	getAllTrips,
 	updateTripStatus,
 	selectHospital,
 	completeTrip,

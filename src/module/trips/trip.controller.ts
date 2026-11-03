@@ -127,9 +127,51 @@ const getMyTrips = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getAllTrips = catchAsync(async (req: Request, res: Response) => {
+	const page = Math.max(1, Number(req.query.page) || 1);
+	const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+
+	const filters: {
+		status?: TripStatus;
+		hospitalId?: string;
+		driverId?: string;
+		search?: string;
+	} = {};
+
+	if (
+		typeof req.query.status === "string" &&
+		req.query.status !== "" &&
+		req.query.status !== "ALL"
+	) {
+		if (Object.values(TripStatus).includes(req.query.status as TripStatus)) {
+			filters.status = req.query.status as TripStatus;
+		}
+	}
+	if (typeof req.query.hospitalId === "string" && req.query.hospitalId.trim() !== "") {
+		filters.hospitalId = req.query.hospitalId.trim();
+	}
+	if (typeof req.query.driverId === "string" && req.query.driverId.trim() !== "") {
+		filters.driverId = req.query.driverId.trim();
+	}
+	if (typeof req.query.search === "string" && req.query.search.trim() !== "") {
+		filters.search = req.query.search.trim();
+	}
+
+	const result = await tripService.getAllTrips(page, limit, filters);
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "Trips retrieved successfully.",
+		data: result.trips,
+		meta: result.meta,
+	});
+});
+
 export const tripController = {
 	getTripById,
 	getMyTrips,
+	getAllTrips,
 	updateTripStatus,
 	selectHospital,
 	completeTrip,

@@ -780,6 +780,91 @@ const getDispatchById = async (dispatchId: string, userId: string, userRole: str
 	return dispatch;
 };
 
+const getAllDispatches = async (
+	page: number,
+	limit: number,
+	filters: {
+		status?: DispatchStatus;
+		emergencyId?: string;
+		ambulanceId?: string;
+		driverId?: string;
+		search?: string;
+	},
+) => {
+	const skip = (page - 1) * limit;
+	const whereConditions: Prisma.DispatchWhereInput = {};
+
+	if (filters.status) whereConditions.status = filters.status;
+	if (filters.emergencyId) whereConditions.emergencyId = filters.emergencyId;
+	if (filters.ambulanceId) whereConditions.ambulanceId = filters.ambulanceId;
+	if (filters.driverId) whereConditions.driverId = filters.driverId;
+
+	if (filters.search) {
+		const term = filters.search.trim();
+		whereConditions.OR = [
+			{ id: { contains: term, mode: "insensitive" } },
+			{ emergency: { incidentNumber: { contains: term, mode: "insensitive" } } },
+			{ ambulance: { registrationNumber: { contains: term, mode: "insensitive" } } },
+			{ driver: { user: { name: { contains: term, mode: "insensitive" } } } },
+		];
+	}
+
+	const [dispatches, total] = await Promise.all([
+		prisma.dispatch.findMany({
+			where: whereConditions,
+			orderBy: { createdAt: "desc" },
+			skip,
+			take: limit,
+			include: {
+				ambulance: {
+					select: {
+						id: true,
+						registrationNumber: true,
+						type: true,
+						capabilities: true,
+						currentLat: true,
+						currentLng: true,
+					},
+				},
+				driver: {
+					include: {
+						user: { select: { id: true, name: true, phone: true } },
+					},
+				},
+				emergency: {
+					select: {
+						id: true,
+						incidentNumber: true,
+						emergencyType: true,
+						priority: true,
+						status: true,
+						locationAddress: true,
+						locationLat: true,
+						locationLng: true,
+						description: true,
+						callerName: true,
+						callerPhone: true,
+					},
+				},
+				trip: {
+					select: { id: true, status: true, hospitalId: true },
+				},
+			},
+		}),
+		prisma.dispatch.count({ where: whereConditions }),
+	]);
+
+	return {
+		dispatches,
+		meta: {
+			page,
+			limit,
+			total,
+			totalPages: Math.ceil(total / limit),
+		},
+	};
+};
+
 export const dispatchService = {
 	recommendAmbulances,
 	createDispatch,
@@ -788,4 +873,5 @@ export const dispatchService = {
 	cancelDispatch,
 	getMyPendingDispatches,
 	getDispatchById,
+	getAllDispatches,
 };

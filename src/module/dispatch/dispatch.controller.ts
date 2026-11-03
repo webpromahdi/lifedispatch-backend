@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
+import { DispatchStatus } from "../../../generated/prisma/enums.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { dispatchService } from "./dispatch.service.js";
@@ -150,6 +151,51 @@ const getDispatchById = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getAllDispatches = catchAsync(async (req: Request, res: Response) => {
+	const page = Math.max(1, Number(req.query.page) || 1);
+	const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+
+	const filters: {
+		status?: DispatchStatus;
+		emergencyId?: string;
+		ambulanceId?: string;
+		driverId?: string;
+		search?: string;
+	} = {};
+
+	if (
+		typeof req.query.status === "string" &&
+		req.query.status !== "" &&
+		req.query.status !== "ALL"
+	) {
+		if (Object.values(DispatchStatus).includes(req.query.status as DispatchStatus)) {
+			filters.status = req.query.status as DispatchStatus;
+		}
+	}
+	if (typeof req.query.emergencyId === "string" && req.query.emergencyId.trim() !== "") {
+		filters.emergencyId = req.query.emergencyId.trim();
+	}
+	if (typeof req.query.ambulanceId === "string" && req.query.ambulanceId.trim() !== "") {
+		filters.ambulanceId = req.query.ambulanceId.trim();
+	}
+	if (typeof req.query.driverId === "string" && req.query.driverId.trim() !== "") {
+		filters.driverId = req.query.driverId.trim();
+	}
+	if (typeof req.query.search === "string" && req.query.search.trim() !== "") {
+		filters.search = req.query.search.trim();
+	}
+
+	const result = await dispatchService.getAllDispatches(page, limit, filters);
+
+	sendResponse(res, {
+		success: true,
+		statusCode: httpStatus.OK,
+		message: "Dispatches retrieved successfully.",
+		data: result.dispatches,
+		meta: result.meta,
+	});
+});
+
 export const dispatchController = {
 	recommendAmbulances,
 	createDispatch,
@@ -158,4 +204,5 @@ export const dispatchController = {
 	cancelDispatch,
 	getMyPendingDispatches,
 	getDispatchById,
+	getAllDispatches,
 };
