@@ -4,6 +4,7 @@ import { PaymentStatus, UserRole } from "../../../generated/prisma/enums.js";
 import config from "../../config/index.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
+import { generateInvoicePDF } from "../../utils/generateInvoicePDF.js";
 
 const SSL_SANDBOX_INIT_URL =
 	"https://sandbox.sslcommerz.com/gwprocess/v4/api.php";
@@ -245,7 +246,7 @@ const getPaymentById = async (
 	let payment = await prisma.payment.findUnique({
 		where: { id: paymentId },
 		include: {
-			trip: { select: { id: true, status: true, emergencyId: true } },
+			trip: { select: { id: true, status: true, emergencyId: true, distanceKm: true } },
 			patient: { select: { id: true, name: true, email: true } },
 		},
 	});
@@ -259,7 +260,7 @@ const getPaymentById = async (
 				],
 			},
 			include: {
-				trip: { select: { id: true, status: true, emergencyId: true } },
+				trip: { select: { id: true, status: true, emergencyId: true, distanceKm: true } },
 				patient: { select: { id: true, name: true, email: true } },
 			},
 		});
@@ -284,9 +285,37 @@ const getPaymentById = async (
 	return payment;
 };
 
+const downloadInvoicePdf = async (
+	paymentId: string,
+	userId: string,
+	userRole: UserRole,
+) => {
+	const payment = await getPaymentById(paymentId, userId, userRole);
+	const pdfBuffer = await generateInvoicePDF({
+		invoiceNumber: payment.invoiceNumber,
+		patientName: payment.patient?.name,
+		patientId: payment.patientId,
+		tripId: payment.tripId,
+		baseFare: Number(payment.baseFare),
+		distanceCharge: Number(payment.distanceCharge),
+		waitingCharge: Number(payment.waitingCharge),
+		additionalCharges: Number(payment.additionalCharges),
+		totalAmount: Number(payment.totalAmount),
+		currency: payment.currency,
+		distanceKm: payment.trip?.distanceKm ? Number(payment.trip.distanceKm) : null,
+		paymentStatus: payment.paymentStatus,
+		paymentMethod: payment.paymentMethod,
+		transactionId: payment.transactionId,
+		createdAt: payment.createdAt,
+	});
+
+	return { pdfBuffer, invoiceNumber: payment.invoiceNumber };
+};
+
 export const paymentService = {
 	initiatePayment,
 	handleCallback,
 	handleIpn,
 	getPaymentById,
+	downloadInvoicePdf,
 };

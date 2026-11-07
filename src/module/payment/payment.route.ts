@@ -22,6 +22,17 @@ router.get(
 	paymentController.getPaymentById,
 );
 
+router.get(
+	"/:paymentId/invoice",
+	auth(
+		UserRole.PATIENT,
+		UserRole.SUPER_ADMIN,
+		UserRole.ADMIN,
+		UserRole.DISPATCHER,
+	),
+	paymentController.downloadInvoice,
+);
+
 router.post("/callback", paymentController.handleCallback);
 
 router.post("/ipn", paymentController.handleIpn);

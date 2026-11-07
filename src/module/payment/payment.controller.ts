@@ -71,9 +71,29 @@ const getPaymentById = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const downloadInvoice = catchAsync(async (req: Request, res: Response) => {
+	const paymentId = req.params.paymentId as string;
+	const userId = req.user!.userId as string;
+	const userRole = req.user!.role;
+
+	const { pdfBuffer, invoiceNumber } = await paymentService.downloadInvoicePdf(
+		paymentId,
+		userId,
+		userRole,
+	);
+
+	res.setHeader("Content-Type", "application/pdf");
+	res.setHeader(
+		"Content-Disposition",
+		`attachment; filename="${invoiceNumber}-receipt.pdf"`,
+	);
+	res.send(pdfBuffer);
+});
+
 export const paymentController = {
 	initiatePayment,
 	handleCallback,
 	handleIpn,
 	getPaymentById,
+	downloadInvoice,
 };

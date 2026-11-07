@@ -111,11 +111,12 @@ const recommendAmbulances = async (
 
 	if (
 		emergency.status !== EmergencyStatus.PRIORITIZED &&
-		emergency.status !== EmergencyStatus.DISPATCHING
+		emergency.status !== EmergencyStatus.DISPATCHING &&
+		emergency.status !== EmergencyStatus.REASSIGNMENT_REQUIRED
 	) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
-			`Emergency must be in PRIORITIZED or DISPATCHING status to run recommendations. Current status: ${emergency.status}.`,
+			`Emergency must be in PRIORITIZED, DISPATCHING, or REASSIGNMENT_REQUIRED status to run recommendations. Current status: ${emergency.status}.`,
 		);
 	}
 
@@ -236,11 +237,12 @@ const createDispatch = async (
 
 	if (
 		emergency.status !== EmergencyStatus.PRIORITIZED &&
-		emergency.status !== EmergencyStatus.DISPATCHING
+		emergency.status !== EmergencyStatus.DISPATCHING &&
+		emergency.status !== EmergencyStatus.REASSIGNMENT_REQUIRED
 	) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
-			`Emergency must be in PRIORITIZED or DISPATCHING status to dispatch. Current: ${emergency.status}.`,
+			`Emergency must be in PRIORITIZED, DISPATCHING, or REASSIGNMENT_REQUIRED status to dispatch. Current: ${emergency.status}.`,
 		);
 	}
 

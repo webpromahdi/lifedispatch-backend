@@ -1,9 +1,9 @@
 # Product Requirements Document (PRD)
 ## LifeDispatch — Emergency Ambulance Dispatch System (EADS)
 
-> **Version:** 1.0 — Production-Ready Backend
-> **Generated:** 2026-09-09 (Source of truth: live codebase + blueprint.md + FEATURES_AND_APIS.md)
-> **Architecture:** Node.js · Express.js · Prisma ORM 5.15+ · PostgreSQL · Zod · Passport.js · Cloudinary · Multer
+> **Version:** 1.1 — Production-Ready Backend
+> **Updated:** 2026-11-03 (Source of truth: live codebase + blueprint.md + FEATURES_AND_APIS.md)
+> **Architecture:** Node.js · Express.js · Prisma ORM 7.x · PostgreSQL · Zod · Passport.js · Cloudinary · Multer · Redis
 
 ---
 
@@ -180,6 +180,14 @@ To prevent scope creep, the following boundaries define what version 1.0 of the 
 - Soft-deleted ambulances (`deletedAt != null`) are excluded from all queries
 - `PATCH /api/v1/ambulances/:id/status` allows updating `AmbulanceStatus` to `AVAILABLE`, `BUSY`, or `OUT_OF_SERVICE`
 
+**User Story 3.3** — As an authenticated driver, I want to view my profile and duty assignment so that I can see my linked ambulance and active shift status.
+**Acceptance Criteria:**
+- `GET /api/v1/drivers/me` — accessible to `DRIVER` only
+- Looks up driver profile by authenticated `userId`
+- Returns full driver record including linked user details (password omitted), assigned ambulance, certification level, and shift status
+- Returns HTTP 404 if driver profile does not exist for the authenticated user
+- `PATCH /api/v1/drivers/me/shift` allows toggling active shift (`action: "start" | "end"`)
+
 ---
 
 ### Feature Set 4: Dispatch Algorithm & Workflow
@@ -205,6 +213,7 @@ To prevent scope creep, the following boundaries define what version 1.0 of the 
 - Dispatch record created with `status: PENDING_ACCEPTANCE`, `timeoutAt = now + 2 minutes`. If ambulance service is overdue, returns a `serviceOverdueWarning` along with the success message.
 - Emergency status transitions to `DISPATCHING`
 - Appends `AMBULANCE_DISPATCHED` timeline event with timeout ISO string in notes
+- **Automated background sweep:** Dispatches exceeding `timeoutAt` are automatically swept every 30 seconds by an automated background worker (`dispatchTimeoutJob.ts`), transitioning dispatch → `TIMED_OUT`, ambulance → `AVAILABLE`, emergency → `REASSIGNMENT_REQUIRED`, and appending `DISPATCH_TIMED_OUT` timeline event
 
 **User Story 4.3** — As a driver, I want to accept a dispatch assignment so that a trip can begin.
 **Acceptance Criteria:**
@@ -231,6 +240,15 @@ To prevent scope creep, the following boundaries define what version 1.0 of the 
 - `GET /api/v1/dispatch/:id` — accessible to `DRIVER`, `SUPER_ADMIN`, `ADMIN`, `DISPATCHER`; fetches full detail of a single dispatch record including related driver, ambulance, emergency, and linked trip (if any); `DRIVER` role is restricted to their own dispatch (HTTP 403 if not the assigned driver); admin roles have unrestricted access
 - **Route ordering constraint:** `GET /me` is registered before `GET /:id` in the Express router to prevent the literal string `"me"` from being captured as an ID parameter
 
+**User Story 4.7** — As a dispatcher or admin, I want to list and filter all dispatch records across the system so that I can monitor dispatch operations and history.
+**Acceptance Criteria:**
+- `GET /api/v1/dispatch` — accessible to `SUPER_ADMIN`, `ADMIN`, `DISPATCHER`
+- Paginated response (`page`, `limit` bounded to [1, 100], default limit: 10)
+- Supports filtering by `status` (`DispatchStatus` enum), `emergencyId`, `ambulanceId`, `driverId`
+- Supports case-insensitive free-text `search` across `emergency.incidentNumber`, `ambulance.registrationNumber`, and `driver.user.name`
+- Results ordered by `createdAt DESC`
+- Response includes relations: `ambulance` (registrationNumber, type, capabilities, currentLat, currentLng), `driver` (with user id, name, phone), `emergency` (incidentNumber, type, priority, status, address, coordinates, description, caller details), and linked `trip` (id, status, hospitalId)
+
 ---
 
 ### Feature Set 5: Trip Lifecycle Management
@@ -248,17 +266,35 @@ To prevent scope creep, the following boundaries define what version 1.0 of the 
 - Trip must be `ACTIVE`; hospital must exist in the system
 - Sets `hospitalId`, `hospitalSelectedAt` on the trip
 - Appends `HOSPITAL_SELECTED` timeline event with hospital name
+- Returns non-blocking capacity and diversion warnings if the hospital is currently `DIVERTING`, `CLOSED`, or has zero available ER beds
 
 **User Story 5.3** — As a driver, I want to complete a trip so that billing is automatically generated.
 **Acceptance Criteria:**
 - `POST /api/v1/trips/:id/complete` — driver ownership enforced; trip must be `ACTIVE`; no existing payment for this trip
-- Payload: `distanceKm` (required), `arrivedAtHospitalAt` (optional, defaults to `now()`)
+- Payload: `distanceKm` (required), `arrivedAtHospitalAt` (optional, defaults to `now()`), `additionalCharges` (optional, defaults to 0)
 - **Fare calculation:**
   - `baseFare` = **500 BDT** (fixed)
   - `distanceCharge` = `distanceKm x 35 BDT/km`
-  - `totalAmount` = `baseFare + distanceCharge`; currency defaults to `BDT`
+  - `waitingCharge` = `(waitingMinutes - 15) x 10 BDT/min` (applied when on-scene wait between `arrivedAtSceneAt` and `patientPickedUpAt` exceeds 15-minute grace period)
+  - `additionalCharges` = optional payload parameter (defaults to 0)
+  - `totalAmount` = `baseFare + distanceCharge + waitingCharge + additionalCharges`; currency defaults to `BDT`
 - Atomic transaction: trip → `COMPLETED`, dispatch → `COMPLETED`, ambulance → `AVAILABLE`, emergency → `COMPLETED`, `responseTimeMinutes` calculated from `emergency.createdAt` to `now()`, `Payment` created (`status: PENDING`), `TRIP_COMPLETED` timeline event appended
 - **PDF Invoice** generated in-memory via PDFKit after DB transaction; returned in response (format: `INV-{base36 timestamp}-{random 4-char}`)
+
+**User Story 5.4** — As a driver, I want to view my trip history so that I can review past assignments and active jobs.
+**Acceptance Criteria:**
+- `GET /api/v1/trips/me` — accessible to `DRIVER` only
+- Automatically scopes query to `driverId: driver.id` matching the authenticated `userId` (returns HTTP 404 if driver profile not found)
+- Supports pagination (`page`, `limit`) and optional status filter (`status: TripStatus`)
+- Returns trips ordered by `createdAt DESC` with related `emergency`, `ambulance`, `hospital`, and `payment` details
+
+**User Story 5.5** — As a dispatcher or admin, I want to view and search all trips across the fleet so that I can monitor operations and review service delivery.
+**Acceptance Criteria:**
+- `GET /api/v1/trips` — accessible to `SUPER_ADMIN`, `ADMIN`, `DISPATCHER`
+- Paginated response (`page`, `limit` bounded to [1, 100], default limit: 10)
+- Supports filtering by `status` (`TripStatus`), `hospitalId`, `driverId`
+- Supports case-insensitive free-text `search` across `emergency.incidentNumber`, `ambulance.registrationNumber`, `driver.user.name`, and `hospital.name`
+- Results ordered by `createdAt DESC` with related emergency, ambulance, driver, hospital, and payment records
 
 ---
 
@@ -269,7 +305,7 @@ To prevent scope creep, the following boundaries define what version 1.0 of the 
 - `PATCH /api/v1/hospitals/:id/diversion` sets `diversionStatus` to `ACCEPTING`, `DIVERTING`, or `CLOSED`; stores `diversionReason`, `diversionSetAt`, and allows updating `availableErBeds`
 - `GET /api/v1/hospitals` supports filtering by `hasCapacity=true` to only return hospitals with available ER beds
 - `GET /api/v1/hospitals/:id` returns full hospital detail including `totalErBeds`, `availableErBeds`, and derived `occupancyPercent`
-- Accessible to `SUPER_ADMIN`, `ADMIN`, `HOSPITAL_STAFF`
+- Accessible to `SUPER_ADMIN`, `ADMIN`, `DISPATCHER`, `DRIVER`, `HOSPITAL_STAFF`
 
 **User Story 6.2** — As an admin, I want to manage hospital staff rosters.
 **Acceptance Criteria:**
@@ -279,16 +315,30 @@ To prevent scope creep, the following boundaries define what version 1.0 of the 
 - `DELETE /api/v1/hospitals/:id/staff/:staffId` soft-deactivates a staff member
 - `PATCH /api/v1/hospitals/staff/me/shift` allows hospital staff to toggle `isOnShift`
 
+**User Story 6.3** — As a hospital staff member, I want to fetch my staff profile and facility status so that I can check my shift status and hospital operational metrics.
+**Acceptance Criteria:**
+- `GET /api/v1/hospitals/staff/me` — accessible to `HOSPITAL_STAFF` only
+- Looks up hospital staff record by authenticated `userId` (HTTP 404 if not found)
+- Returns staff profile, linked user details (password omitted), and hospital information including staff count, total trips count, and calculated ER `occupancyPercent`
+
+**User Story 6.4** — As hospital staff or an admin, I want to view inbound active ambulance trips destined for our facility so that emergency room teams can prepare before patients arrive.
+**Acceptance Criteria:**
+- `GET /api/v1/hospitals/:id/inbound` — accessible to `SUPER_ADMIN`, `ADMIN`, `HOSPITAL_STAFF`
+- Validates hospital exists and `isActive: true` (HTTP 404 if missing or inactive)
+- Fetches all trips where `hospitalId = :id` and `status = ACTIVE`, ordered by `createdAt DESC`
+- Enriches each trip with emergency details (incident number, emergency type, priority, status, address, description, dispatcher notes, caller name/phone), ambulance info (plate number, type, status), driver info (license number, user name/phone), and patient clinical profile (blood type, known conditions, emergency contact name/phone)
+
 ---
 
 ### Feature Set 7: Payment Gateway Integration
 
 **User Story 7.1** — As a patient, I want to pay my trip invoice online so that I can settle my bill.
 **Acceptance Criteria:**
-- `POST /api/v1/payment/:paymentId/initiate` — patient must own this record; blocked if already `PAID`
+- `POST /api/v1/payment/:paymentId/initiate` — patient ownership enforced; payment record resolved by payment `id` or fallback match on `trip.emergencyId` / `tripId`; blocked if already `PAID`
 - Generates `transactionId` in format `LD-{invoiceNumber}-{timestamp}`
 - Posts session to **SSLCommerz sandbox** (`sandbox.sslcommerz.com`) with customer and product info
 - Returns `{ gatewayUrl, transactionId }` on success
+- `GET /api/v1/payment/:paymentId` — accessible to `PATIENT`, `SUPER_ADMIN`, `ADMIN`, `DISPATCHER`; privileged roles can view any payment, while patients can view only their own records; supports ID fallback resolution by `trip.emergencyId` or `tripId`
 
 **User Story 7.2** — As the system, I want to process payment gateway callbacks and IPN notifications securely.
 **Acceptance Criteria:**
@@ -448,7 +498,7 @@ GATEWAY sends callback/IPN
 
 ### 4.1 Pagination Rules
 
-Enforced uniformly in all list controllers:
+Enforced uniformly in all list controllers (`/admin/users`, `/emergencies`, `/ambulances`, `/drivers`, `/hospitals`, `/hospitals/:id/staff`, `/dispatch`, `/trips`, `/trips/me`, `/admin/audit-logs`):
 - `page`: `Math.max(1, Number(req.query.page) || 1)` — minimum 1, never 0 or negative
 - `limit`: `Math.min(100, Math.max(1, Number(req.query.limit) || 10))` — bounded [1, 100], default 10
 - **Exception:** Audit logs default limit is **20** (not 10), as coded in [admin.controller.ts L154](file:///d:/level-2/lifedispatch/lifedispatch-backend/src/module/admin/admin.controller.ts#L154)
@@ -489,9 +539,12 @@ Implemented in [dispatch.service.ts L285-L305](file:///d:/level-2/lifedispatch/l
 ### 4.5 Dispatch Timeout Enforcement
 
 - Timeout window: **2 minutes** (`const dispatchTimeoutMinutes = 2` in [dispatch.service.ts L18](file:///d:/level-2/lifedispatch/lifedispatch-backend/src/module/dispatch/dispatch.service.ts#L18))
-- Enforced **reactively at accept-time**: `if (new Date() > dispatch.timeoutAt) → HTTP 400`
-- The `TIMED_OUT` DispatchStatus enum exists in schema but **no background job** auto-sets it
-- Timeout is only detected when a driver attempts to accept a stale dispatch
+- **Automated background sweep:** Background worker in [dispatchTimeoutJob.ts](file:///d:/level-2/lifedispatch/lifedispatch-backend/src/lib/dispatchTimeoutJob.ts) runs every 30 seconds (`SWEEP_INTERVAL_MS = 30_000`), finds all dispatches in `PENDING_ACCEPTANCE` where `timeoutAt < now()`, and atomically:
+  1. Marks dispatch → `TIMED_OUT`
+  2. Releases ambulance → `AVAILABLE`
+  3. Transitions emergency → `REASSIGNMENT_REQUIRED`
+  4. Appends `DISPATCH_TIMED_OUT` event to `IncidentTimeline`
+- **Reactive accept-time check:** If a driver attempts to accept a dispatch after `dispatch.timeoutAt`, the request is rejected with HTTP 400
 
 ### 4.6 Emergency Creation Guard (Patient Blocking)
 
@@ -504,7 +557,8 @@ Verified in [emergency.service.ts L12-L41](file:///d:/level-2/lifedispatch/lifed
 
 - **Emergency view/cancel:** `if (role === PATIENT && emergency.patientId !== requesterId) → 403`
 - **Trip view:** `if (role === PATIENT && trip.patientId !== userId) → 403`
-- **Payment initiate/view:** `if (payment.patientId !== userId) → 403` (applies to ALL callers — see Sync Delta #3)
+- **Payment initiation:** `if (payment.patientId !== userId) → 403` (strictly enforces patient ownership)
+- **Payment view (`GET /payment/:paymentId`):** Privileged operational roles (`SUPER_ADMIN`, `ADMIN`, `DISPATCHER`) can inspect any payment record; callers with role `PATIENT` can only view their own payment (`payment.patientId === userId`)
 
 ### 4.8 Driver Ownership Enforcement
 
@@ -536,16 +590,20 @@ Prevents duplicate invoices and double-billing.
 ### 4.11 Search & Filter Logic
 
 - **Users** (`GET /admin/users`): Full-text OR search across `name`, `email`, `phone` using `contains` + `mode: "insensitive"`
-- **Emergencies** (`GET /emergencies`): Filters by `status`, `emergencyType`, `priority` — **no free-text search**
+- **Emergencies** (`GET /emergencies`): Filters by `status`, `emergencyType`, `priority` — no free-text search
+- **Dispatches** (`GET /dispatch`): Filters by `status`, `emergencyId`, `ambulanceId`, `driverId`. Case-insensitive OR search across `emergency.incidentNumber`, `ambulance.registrationNumber`, `driver.user.name`
+- **Trips** (`GET /trips`): Filters by `status`, `hospitalId`, `driverId`. Case-insensitive OR search across `emergency.incidentNumber`, `ambulance.registrationNumber`, `driver.user.name`, `hospital.name`
+- **Driver Trips** (`GET /trips/me`): Scoped to authenticated driver, filterable by `status`
 - **Audit Logs** (`GET /admin/audit-logs`): Exact-match filters on `action`, `entity`, `performedBy` (UUID)
 
 ### 4.12 Fare Calculation Constants (Hardcoded)
 
-From [trip.service.ts L18-L19](file:///d:/level-2/lifedispatch/lifedispatch-backend/src/module/trips/trip.service.ts#L18):
+From [trip.service.ts L18-L23](file:///d:/level-2/lifedispatch/lifedispatch-backend/src/module/trips/trip.service.ts#L18):
 - Base fare: **500 BDT** (`FARE_BASE_BDT = 500`)
 - Distance rate: **35 BDT per km** (`FARE_PER_KM_BDT = 35`)
-- `waitingCharge`, `additionalCharges`, `discount` are schema fields defaulting to `0` — no logic currently populates them
-- Final: `totalAmount = round((500 + distanceKm * 35) * 100) / 100`
+- Waiting charge: **10 BDT per minute** for on-scene wait times (`patientPickedUpAt - arrivedAtSceneAt`) exceeding a 15-minute grace period (`(waitingMinutes - 15) * 10`)
+- Additional charges: optional payload parameter `additionalCharges` (defaults to `0`)
+- Final: `totalAmount = round((baseFare + distanceCharge + waitingCharge + additionalCharges) * 100) / 100`
 
 ---
 
@@ -555,11 +613,11 @@ From [trip.service.ts L18-L19](file:///d:/level-2/lifedispatch/lifedispatch-back
 
 | # | Documentation Claim | Live Code Reality | Severity |
 |---|--------------------|--------------------|----------|
-| 1 | FEATURES_AND_APIS.md title says **48 APIs**; summary table shows **50** | Live code has 50 verified endpoints across 9 modules | Low — doc inconsistency |
+| 1 | Previous docs cited 50/56 endpoints | Live code has 63 verified endpoints across 9 modules | Low — doc update applied |
 | 2 | Audit-logs default limit implied as 10 (same as others) | Live `admin.controller.ts:154` uses default **20** | Low |
-| 3 | `GET /payment/:paymentId` allows ADMIN/DISPATCHER per route guard | Service `getPaymentById` throws **403 for non-patient** via `patientId !== userId` check | **HIGH** — admins cannot view payments |
-| 4 | Blueprint implies `REASSIGNMENT_REQUIRED` status used on driver rejection | Live code sets emergency to `DISPATCHING` on rejection/cancel — never transitions to `REASSIGNMENT_REQUIRED` | Medium |
-| 5 | `TIMED_OUT` DispatchStatus in schema implies background automation | No cron/job auto-sets `TIMED_OUT`; timeout enforced only reactively on accept attempt | Medium |
+| 3 | `GET /payment/:paymentId` allows ADMIN/DISPATCHER per route guard | **Resolved** — Service `getPaymentById` permits privileged viewer roles (`SUPER_ADMIN`, `ADMIN`, `DISPATCHER`), restricting only patients to ownership checks | Resolved |
+| 4 | Blueprint implies `REASSIGNMENT_REQUIRED` status used on timeout | **Resolved** — Background worker in `dispatchTimeoutJob.ts` transitions emergency to `REASSIGNMENT_REQUIRED` upon timeout sweep | Resolved |
+| 5 | `TIMED_OUT` DispatchStatus in schema implies background automation | **Resolved** — Automated 30-second interval sweep job `startDispatchTimeoutJob()` is active in `server.ts` via `dispatchTimeoutJob.ts` | Resolved |
 | 6 | `dispatchScore` field on Dispatch model suggests score is saved | `createDispatch` does NOT persist `dispatchScore` — field remains null after dispatch creation | Low — data gap |
 | 7 | `isEscalated`, `escalationReason`, `slaTargetMinutes` on EmergencyRequest | No live service code reads or writes these fields — dead schema fields | Low |
 | 8 | `User.deletedAt` and `User.isDeleted` both exist in schema | `updateUserStatus` with `status: DELETED` only sets the `status` enum; does NOT set `isDeleted: true` or `deletedAt` | Medium — soft-delete gap |
@@ -568,7 +626,7 @@ From [trip.service.ts L18-L19](file:///d:/level-2/lifedispatch/lifedispatch-back
 
 ---
 
-## 6. Complete API Reference (56 Endpoints)
+## 6. Complete API Reference (63 Endpoints)
 
 | # | Module | Method | Endpoint | Auth | Authorized Roles |
 |---|--------|--------|----------|:----:|------------------|
@@ -580,55 +638,60 @@ From [trip.service.ts L18-L19](file:///d:/level-2/lifedispatch/lifedispatch-back
 | 6 | Auth | GET | `/api/v1/auth/google/callback` | No | Public |
 | 7 | Auth | POST | `/api/v1/auth/forgot-password` | No | Public |
 | 8 | Auth | POST | `/api/v1/auth/reset-password` | No | Public |
-| 9 | Auth | POST | `/api/v1/auth/logout` | Yes | All Roles |
-| 10 | Auth | POST | `/api/v1/auth/logout-all` | Yes | All Roles |
-| 56 | Auth | GET | `/api/v1/auth/me` | Yes | All Roles |
-| 11 | Emergencies | POST | `/api/v1/emergencies/create` | Yes | PATIENT |
-| 12 | Emergencies | GET | `/api/v1/emergencies/` | Yes | SUPER_ADMIN, ADMIN, PATIENT, DISPATCHER |
-| 13 | Emergencies | GET | `/api/v1/emergencies/:id` | Yes | SUPER_ADMIN, ADMIN, PATIENT, DISPATCHER, DRIVER, HOSPITAL_STAFF |
-| 14 | Emergencies | PATCH | `/api/v1/emergencies/:id/priority` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
-| 15 | Emergencies | POST | `/api/v1/emergencies/:id/cancel` | Yes | SUPER_ADMIN, ADMIN, PATIENT, DISPATCHER |
-| 16 | Ambulances | POST | `/api/v1/ambulances/create` | Yes | SUPER_ADMIN, ADMIN |
-| 17 | Ambulances | GET | `/api/v1/ambulances/` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
-| 18 | Ambulances | GET | `/api/v1/ambulances/:id` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
-| 19 | Ambulances | PATCH | `/api/v1/ambulances/:id` | Yes | SUPER_ADMIN, ADMIN |
-| 20 | Ambulances | PATCH | `/api/v1/ambulances/:id/status` | Yes | SUPER_ADMIN, ADMIN, DRIVER |
-| 21 | Drivers | POST | `/api/v1/drivers/create` | Yes | SUPER_ADMIN, ADMIN |
-| 22 | Drivers | GET | `/api/v1/drivers/` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
-| 23 | Drivers | PATCH | `/api/v1/drivers/me/shift` | Yes | DRIVER |
-| 24 | Drivers | PATCH | `/api/v1/drivers/:id` | Yes | SUPER_ADMIN, ADMIN |
-| 25 | Hospitals | POST | `/api/v1/hospitals/create` | Yes | SUPER_ADMIN, ADMIN |
-| 26 | Hospitals | GET | `/api/v1/hospitals/` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER |
-| 27 | Hospitals | GET | `/api/v1/hospitals/:id` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER |
-| 28 | Hospitals | PATCH | `/api/v1/hospitals/staff/me/shift` | Yes | HOSPITAL_STAFF |
-| 29 | Hospitals | PATCH | `/api/v1/hospitals/:id` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
-| 30 | Hospitals | PATCH | `/api/v1/hospitals/:id/diversion` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
-| 31 | Hospitals | POST | `/api/v1/hospitals/:id/staff/create` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
-| 32 | Hospitals | GET | `/api/v1/hospitals/:id/staff` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
-| 33 | Hospitals | PATCH | `/api/v1/hospitals/:id/staff/:staffId` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
-| 34 | Hospitals | DELETE | `/api/v1/hospitals/:id/staff/:staffId` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
-| 35 | Dispatch | POST | `/api/v1/dispatch/recommend` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
-| 36 | Dispatch | POST | `/api/v1/dispatch/create` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
-| 37 | Dispatch | GET | `/api/v1/dispatch/me` | Yes | DRIVER |
-| 38 | Dispatch | GET | `/api/v1/dispatch/:id` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER |
-| 39 | Dispatch | POST | `/api/v1/dispatch/:id/accept` | Yes | DRIVER |
-| 40 | Dispatch | POST | `/api/v1/dispatch/:id/reject` | Yes | DRIVER |
-| 41 | Dispatch | POST | `/api/v1/dispatch/:id/cancel` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
-| 42 | Trips | GET | `/api/v1/trips/:id` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER, PATIENT |
-| 43 | Trips | PATCH | `/api/v1/trips/:id/status` | Yes | DRIVER |
-| 44 | Trips | PATCH | `/api/v1/trips/:id/hospital` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER |
-| 45 | Trips | POST | `/api/v1/trips/:id/complete` | Yes | DRIVER |
-| 46 | Payment | POST | `/api/v1/payment/:paymentId/initiate` | Yes | PATIENT |
-| 47 | Payment | GET | `/api/v1/payment/:paymentId` | Yes | PATIENT, SUPER_ADMIN, ADMIN, DISPATCHER |
-| 48 | Payment | POST | `/api/v1/payment/callback` | No | System/Gateway |
-| 49 | Payment | POST | `/api/v1/payment/ipn` | No | System/Gateway |
-| 50 | Admin | GET | `/api/v1/admin/users` | Yes | SUPER_ADMIN, ADMIN |
-| 51 | Admin | PATCH | `/api/v1/admin/users/:id/status` | Yes | SUPER_ADMIN, ADMIN |
-| 52 | Admin | GET | `/api/v1/admin/analytics/overview` | Yes | SUPER_ADMIN, ADMIN |
-| 53 | Admin | GET | `/api/v1/admin/analytics/emergencies` | Yes | SUPER_ADMIN, ADMIN |
-| 54 | Admin | GET | `/api/v1/admin/analytics/payments` | Yes | SUPER_ADMIN, ADMIN |
-| 55 | Admin | GET | `/api/v1/admin/audit-logs` | Yes | SUPER_ADMIN, ADMIN |
+| 9 | Auth | GET | `/api/v1/auth/me` | Yes | All Roles |
+| 10 | Auth | POST | `/api/v1/auth/change-password` | Yes | All Roles |
+| 11 | Auth | POST | `/api/v1/auth/logout` | Yes | All Roles |
+| 12 | Auth | POST | `/api/v1/auth/logout-all` | Yes | All Roles |
+| 13 | Emergencies | POST | `/api/v1/emergencies/create` | Yes | PATIENT |
+| 14 | Emergencies | GET | `/api/v1/emergencies/` | Yes | SUPER_ADMIN, ADMIN, PATIENT, DISPATCHER |
+| 15 | Emergencies | GET | `/api/v1/emergencies/:id` | Yes | SUPER_ADMIN, ADMIN, PATIENT, DISPATCHER, DRIVER, HOSPITAL_STAFF |
+| 16 | Emergencies | PATCH | `/api/v1/emergencies/:id/priority` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 17 | Emergencies | POST | `/api/v1/emergencies/:id/cancel` | Yes | SUPER_ADMIN, ADMIN, PATIENT, DISPATCHER |
+| 18 | Ambulances | POST | `/api/v1/ambulances/create` | Yes | SUPER_ADMIN, ADMIN |
+| 19 | Ambulances | GET | `/api/v1/ambulances/` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 20 | Ambulances | GET | `/api/v1/ambulances/:id` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 21 | Ambulances | PATCH | `/api/v1/ambulances/:id` | Yes | SUPER_ADMIN, ADMIN |
+| 22 | Ambulances | PATCH | `/api/v1/ambulances/:id/status` | Yes | SUPER_ADMIN, ADMIN, DRIVER |
+| 23 | Drivers | POST | `/api/v1/drivers/create` | Yes | SUPER_ADMIN, ADMIN |
+| 24 | Drivers | GET | `/api/v1/drivers/` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 25 | Drivers | GET | `/api/v1/drivers/me` | Yes | DRIVER |
+| 26 | Drivers | PATCH | `/api/v1/drivers/me/shift` | Yes | DRIVER |
+| 27 | Drivers | PATCH | `/api/v1/drivers/:id` | Yes | SUPER_ADMIN, ADMIN |
+| 28 | Hospitals | POST | `/api/v1/hospitals/create` | Yes | SUPER_ADMIN, ADMIN |
+| 29 | Hospitals | GET | `/api/v1/hospitals/` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER, HOSPITAL_STAFF |
+| 30 | Hospitals | GET | `/api/v1/hospitals/staff/me` | Yes | HOSPITAL_STAFF |
+| 31 | Hospitals | PATCH | `/api/v1/hospitals/staff/me/shift` | Yes | HOSPITAL_STAFF |
+| 32 | Hospitals | GET | `/api/v1/hospitals/:id` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER, HOSPITAL_STAFF |
+| 33 | Hospitals | GET | `/api/v1/hospitals/:id/inbound` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
+| 34 | Hospitals | PATCH | `/api/v1/hospitals/:id` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
+| 35 | Hospitals | PATCH | `/api/v1/hospitals/:id/diversion` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
+| 36 | Hospitals | POST | `/api/v1/hospitals/:id/staff/create` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
+| 37 | Hospitals | GET | `/api/v1/hospitals/:id/staff` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
+| 38 | Hospitals | PATCH | `/api/v1/hospitals/:id/staff/:staffId` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
+| 39 | Hospitals | DELETE | `/api/v1/hospitals/:id/staff/:staffId` | Yes | SUPER_ADMIN, ADMIN, HOSPITAL_STAFF |
+| 40 | Dispatch | POST | `/api/v1/dispatch/recommend` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 41 | Dispatch | POST | `/api/v1/dispatch/create` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 42 | Dispatch | GET | `/api/v1/dispatch/` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 43 | Dispatch | GET | `/api/v1/dispatch/me` | Yes | DRIVER |
+| 44 | Dispatch | GET | `/api/v1/dispatch/:id` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER |
+| 45 | Dispatch | POST | `/api/v1/dispatch/:id/accept` | Yes | DRIVER |
+| 46 | Dispatch | POST | `/api/v1/dispatch/:id/reject` | Yes | DRIVER |
+| 47 | Dispatch | POST | `/api/v1/dispatch/:id/cancel` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 48 | Trips | GET | `/api/v1/trips/` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER |
+| 49 | Trips | GET | `/api/v1/trips/me` | Yes | DRIVER |
+| 50 | Trips | GET | `/api/v1/trips/:id` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER, PATIENT |
+| 51 | Trips | PATCH | `/api/v1/trips/:id/status` | Yes | DRIVER |
+| 52 | Trips | PATCH | `/api/v1/trips/:id/hospital` | Yes | SUPER_ADMIN, ADMIN, DISPATCHER, DRIVER |
+| 53 | Trips | POST | `/api/v1/trips/:id/complete` | Yes | DRIVER |
+| 54 | Payment | POST | `/api/v1/payment/:paymentId/initiate` | Yes | PATIENT |
+| 55 | Payment | GET | `/api/v1/payment/:paymentId` | Yes | PATIENT, SUPER_ADMIN, ADMIN, DISPATCHER |
+| 56 | Payment | POST | `/api/v1/payment/callback` | No | System/Gateway |
+| 57 | Payment | POST | `/api/v1/payment/ipn` | No | System/Gateway |
+| 58 | Admin | GET | `/api/v1/admin/users` | Yes | SUPER_ADMIN, ADMIN |
+| 59 | Admin | PATCH | `/api/v1/admin/users/:id/status` | Yes | SUPER_ADMIN, ADMIN |
+| 60 | Admin | GET | `/api/v1/admin/analytics/overview` | Yes | SUPER_ADMIN, ADMIN |
+| 61 | Admin | GET | `/api/v1/admin/analytics/emergencies` | Yes | SUPER_ADMIN, ADMIN |
+| 62 | Admin | GET | `/api/v1/admin/analytics/payments` | Yes | SUPER_ADMIN, ADMIN |
+| 63 | Admin | GET | `/api/v1/admin/audit-logs` | Yes | SUPER_ADMIN, ADMIN |
 
 ---
-
-*PRD generated by Antigravity AI — source of truth: live codebase verified 2026-09-09*
