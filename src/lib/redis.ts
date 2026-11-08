@@ -18,3 +18,10 @@ redisClient.on("error", (err: Error) => {
 redisClient.on("reconnecting", () => {
 	console.warn("[Redis] Reconnecting...");
 });
+
+// Auto-connect in serverless environments
+if (!redisClient.isOpen) {
+	redisClient.connect().catch((err) => {
+		console.error("[Redis] Serverless auto-connect failed:", err);
+	});
+}

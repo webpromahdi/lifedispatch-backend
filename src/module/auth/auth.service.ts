@@ -36,6 +36,9 @@ const storeRefreshToken = async (
 	userId: string,
 	token: string,
 ): Promise<void> => {
+	if (!redisClient.isOpen) {
+		await redisClient.connect();
+	}
 	const key = refreshTokenSetKey(userId);
 	await redisClient.sAdd(key, token);
 	// Reset TTL on every add so the key stays alive as long as any session exists.
@@ -49,6 +52,9 @@ const removeRefreshToken = async (
 	userId: string,
 	token: string,
 ): Promise<void> => {
+	if (!redisClient.isOpen) {
+		await redisClient.connect();
+	}
 	const key = refreshTokenSetKey(userId);
 	await redisClient.sRem(key, token);
 };
@@ -57,6 +63,9 @@ const removeRefreshToken = async (
  * Remove ALL refresh tokens for a user (logout everywhere).
  */
 const removeAllRefreshTokens = async (userId: string): Promise<void> => {
+	if (!redisClient.isOpen) {
+		await redisClient.connect();
+	}
 	const key = refreshTokenSetKey(userId);
 	await redisClient.del(key);
 };
@@ -68,6 +77,9 @@ const isRefreshTokenValid = async (
 	userId: string,
 	token: string,
 ): Promise<boolean> => {
+	if (!redisClient.isOpen) {
+		await redisClient.connect();
+	}
 	const key = refreshTokenSetKey(userId);
 	const result = await redisClient.sIsMember(key, token);
 	return result === 1;

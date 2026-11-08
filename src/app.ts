@@ -5,6 +5,7 @@ import express from "express";
 import helmet from "helmet";
 import passport from "passport";
 import config from "./config/index.js";
+import { redisClient } from "./lib/redis.js";
 import { globalErrorHandler } from "./middleware/globalErrorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 import { authRoutes } from "./module/auth/auth.route.js";
@@ -40,6 +41,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(passport.initialize());
+
+// Ensure Redis is connected before processing requests (critical for Serverless environments like Vercel)
+app.use(async (_req: Request, _res: Response, next) => {
+	if (!redisClient.isOpen) {
+		try {
+			await redisClient.connect();
+		} catch (err) {
+			console.error("[Redis] Serverless connect error:", err);
+		}
+	}
+	next();
+});
 
 // Routes
 app.use("/api/v1/auth", authRoutes);
