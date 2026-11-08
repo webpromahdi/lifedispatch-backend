@@ -25,12 +25,46 @@ const app: Application = express();
 app.use(helmet());
 
 // CORS configuration
+const allowedOrigins = [
+	"https://lifedispatch-frontend.vercel.app",
+	"http://localhost:3000",
+	"http://localhost:5173",
+	"http://localhost:5174",
+	"http://127.0.0.1:3000",
+	"http://127.0.0.1:5173",
+];
+
+if (config.frontend_url) {
+	const cleanUrl = config.frontend_url.replace(/\/$/, "");
+	if (!allowedOrigins.includes(cleanUrl)) {
+		allowedOrigins.push(cleanUrl);
+	}
+}
+
 app.use(
 	cors({
-		origin: config.frontend_url,
+		origin: (origin, callback) => {
+			// Allow requests with no origin (like mobile apps, curl, postman)
+			if (!origin) return callback(null, true);
+
+			if (
+				allowedOrigins.includes(origin) ||
+				origin.endsWith(".vercel.app")
+			) {
+				return callback(null, true);
+			}
+
+			return callback(null, false);
+		},
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-		allowedHeaders: ["Content-Type", "Authorization"],
+		allowedHeaders: [
+			"Content-Type",
+			"Authorization",
+			"X-Requested-With",
+			"Accept",
+			"Origin",
+		],
 	}),
 );
 
